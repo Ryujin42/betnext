@@ -37,3 +37,8 @@ pnpm-debug.log*
 .vite/
 .next/
 .expo/
+
+# Docs de travail / référence projet (non versionnées)
+BETNEXT_CONTEXT.md
+BETNEXT_TASKS.md
+CLAUDE.md
