@@ -1,8 +1,6 @@
 # BetNext — Plateforme de paris sportifs
 
-Projet NestJS · ESGI 4ème année IW · 2025-2026
-
-> Migration progressive depuis le monolithe Symfony vers une architecture microservices NestJS.
+Application de paris sportifs centrée sur l'esport (LoL, CS2, Valorant). Cotes recalculées en temps réel, trois interfaces (web, mobile, admin), architecture en microservices (NestJS).
 
 ---
 
