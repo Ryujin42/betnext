@@ -27,7 +27,7 @@
 - Seul l'**API Gateway** vérifie le JWT ; les services internes font confiance aux headers `userId` / `roles` injectés.
 - Toute intégration externe (Stripe, Riot) passe par une **interface** avec une implémentation **mockée** d'abord.
 - Toute action sensible (pari, dépôt, modification RG, suspension) est **auditée** (table append-only).
-- Les mots de passe sont **toujours** hachés avec **bcrypt**.
+- Les mots de passe sont **toujours** hachés avec **Argon2id** (package `argon2` ; bcrypt déprécié).
 
 ## Workflow Git
 
