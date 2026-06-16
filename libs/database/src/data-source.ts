@@ -2,8 +2,7 @@ import 'reflect-metadata';
 import { resolve } from 'node:path';
 import { config as loadDotenv } from 'dotenv';
 import { DataSource } from 'typeorm';
-import { UserEntity } from './entities/user.entity';
-import { SessionEntity } from './entities/session.entity';
+import { ENTITIES } from './database.config';
 
 /**
  * DataSource centralisée du monorepo, utilisée par la CLI TypeORM
@@ -24,7 +23,7 @@ export default new DataSource({
   type: 'postgres',
   url: databaseUrl,
   schema: 'betnext',
-  entities: [UserEntity, SessionEntity],
+  entities: ENTITIES,
   migrations: [resolve(__dirname, 'migrations/*.{ts,js}')],
   migrationsTableName: 'typeorm_migrations',
   synchronize: false,
