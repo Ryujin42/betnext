@@ -15,8 +15,8 @@ export class HealthController {
    * (DoD T1.2 : `IUser` importé et utilisé, compile).
    */
   @Get('meta')
-  meta(): { service: string; roles: Role[]; userShape: (keyof IUser)[] } {
-    const userShape: (keyof IUser)[] = ['id', 'name', 'email', 'roles', 'birthDate', 'createdAt'];
-    return { service: 'api-gateway', roles: Object.values(Role), userShape };
+  meta(): { service: string; availableRoles: Role[]; userShape: (keyof IUser)[] } {
+    const userShape: (keyof IUser)[] = ['id', 'name', 'email', 'role', 'birthDate', 'createdAt'];
+    return { service: 'api-gateway', availableRoles: Object.values(Role), userShape };
   }
 }

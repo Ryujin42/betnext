@@ -8,7 +8,7 @@ export interface IUser {
   id: number;
   name: string;
   email: string;
-  roles: Role[];
+  role: Role; // un seul rôle par utilisateur (ROLE_USER par défaut)
   birthDate: string; // ISO date (YYYY-MM-DD)
   createdAt: string; // ISO datetime
 }

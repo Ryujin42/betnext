@@ -7,10 +7,7 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-betnext}
       POSTGRES_USER: ${POSTGRES_USER:-betnext}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-betnext}
-      USERS_DB_PASSWORD: ${USERS_DB_PASSWORD:-users_pwd}
-      BETTING_DB_PASSWORD: ${BETTING_DB_PASSWORD:-betting_pwd}
-      EVENTS_DB_PASSWORD: ${EVENTS_DB_PASSWORD:-events_pwd}
-      WALLET_DB_PASSWORD: ${WALLET_DB_PASSWORD:-wallet_pwd}
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:-app_pwd}
     ports:
       - '${POSTGRES_PORT:-5432}:5432'
     volumes:

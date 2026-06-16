@@ -15,7 +15,7 @@ Application de paris sportifs centrée sur l'esport (LoL, CS2, Valorant). Cotes 
 | **API Gateway** | NestJS · JWT verify · Rate limit · Throttler · WebSocket · nginx |
 | **Services métier** | NestJS (user, betting, event, wallet) |
 | **Event bus** | Redis Pub/Sub · BullMQ |
-| **Base de données** | PostgreSQL 16 (4 schémas isolés, 4 users SQL) |
+| **Base de données** | PostgreSQL 16 (schéma unique `betnext`, 1 user applicatif) |
 | **Cache / sessions** | Redis 7 |
 | **Observabilité** | Prometheus · Grafana · Winston · Loki |
 | **Jeux** | Adaptateurs LoL · CS2 · Valorant (IGameDataProvider) |
