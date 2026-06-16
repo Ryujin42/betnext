@@ -49,7 +49,11 @@ export default tseslint.config(
      * `consistent-type-imports` les convertirait à tort en `import type`,
      * cassant l'injection. On la désactive sur ces dossiers.
      */
-    files: ['apps/api-gateway/**/*.ts', 'apps/user-service/**/*.ts'],
+    files: [
+      'apps/api-gateway/**/*.ts',
+      'apps/user-service/**/*.ts',
+      'apps/event-service/**/*.ts',
+    ],
     rules: {
       '@typescript-eslint/consistent-type-imports': 'off',
     },
