@@ -1,12 +1,12 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as argon2 from 'argon2';
-import type { Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { BetNextErrorCode, type IUser, Role } from '@betnext/shared-types';
 import { isAdult } from '@betnext/shared-utils';
 import { BetNextException } from '../common/exceptions/betnext.exception';
 import { UserEntity } from '../entities/user.entity';
-import type { RegisterDto } from './dto/register.dto';
+import { RegisterDto } from './dto/register.dto';
 
 /**
  * Service d'authentification — Lot 2 (T2.2 register, T2.3 login/refresh).

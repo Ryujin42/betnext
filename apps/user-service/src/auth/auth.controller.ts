@@ -1,7 +1,7 @@
 import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import type { IUser } from '@betnext/shared-types';
-import type { AuthService } from './auth.service';
-import type { RegisterDto } from './dto/register.dto';
+import { AuthService } from './auth.service';
+import { RegisterDto } from './dto/register.dto';
 
 /**
  * Routes d'authentification exposées sur le user-service (port interne).
