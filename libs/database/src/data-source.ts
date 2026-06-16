@@ -2,14 +2,17 @@ import 'reflect-metadata';
 import { resolve } from 'node:path';
 import { config as loadDotenv } from 'dotenv';
 import { DataSource } from 'typeorm';
-import { UserEntity } from '../entities/user.entity';
-import { SessionEntity } from '../entities/session.entity';
+import { ENTITIES } from './database.config';
 
 /**
- * DataSource utilisée par la CLI TypeORM (`typeorm-ts-node-commonjs migration:*`).
+ * DataSource centralisée du monorepo, utilisée par la CLI TypeORM
+ * (`typeorm-ts-node-commonjs migration:*`). Toutes les entités de tous les
+ * domaines vivent dans le schéma applicatif unique `betnext` (cf. ADR-002),
+ * ce qui autorise les JOIN inter-domaines (vraies FK).
+ *
  * Charge le `.env` racine du monorepo pour récupérer `DATABASE_URL`.
  */
-loadDotenv({ path: resolve(__dirname, '../../../../.env') });
+loadDotenv({ path: resolve(__dirname, '../../../.env') });
 
 const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) {
@@ -20,7 +23,7 @@ export default new DataSource({
   type: 'postgres',
   url: databaseUrl,
   schema: 'betnext',
-  entities: [UserEntity, SessionEntity],
+  entities: ENTITIES,
   migrations: [resolve(__dirname, 'migrations/*.{ts,js}')],
   migrationsTableName: 'typeorm_migrations',
   synchronize: false,

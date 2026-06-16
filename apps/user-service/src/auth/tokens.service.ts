@@ -5,8 +5,7 @@ import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
 import type { IAccessTokenPayload } from '@betnext/shared-types';
-import { SessionEntity } from '../entities/session.entity';
-import { UserEntity } from '../entities/user.entity';
+import { SessionEntity, UserEntity } from '@betnext/database';
 
 export interface SessionContext {
   ip: string | null;
