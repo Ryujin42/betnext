@@ -19,7 +19,8 @@
     "typecheck": "tsc -p tsconfig.lib.json --noEmit",
     "db:migrate": "typeorm-ts-node-commonjs migration:run -d src/data-source.ts",
     "db:migrate:revert": "typeorm-ts-node-commonjs migration:revert -d src/data-source.ts",
-    "db:migrate:show": "typeorm-ts-node-commonjs migration:show -d src/data-source.ts"
+    "db:migrate:show": "typeorm-ts-node-commonjs migration:show -d src/data-source.ts",
+    "db:seed": "ts-node src/seed.ts"
   },
   "dependencies": {
     "@betnext/shared-types": "workspace:*",
@@ -30,6 +31,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
+    "argon2": "^0.41.1",
     "dotenv": "^16.4.7",
     "ts-node": "^10.9.2",
     "typescript": "^5.7.3"
