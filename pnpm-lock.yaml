@@ -140,6 +140,9 @@ importers:
 
   apps/user-service:
     dependencies:
+      '@betnext/database':
+        specifier: workspace:*
+        version: link:../../libs/database
       '@betnext/shared-types':
         specifier: workspace:*
         version: link:../../libs/shared-types
@@ -244,6 +247,37 @@ importers:
   apps/wallet-service: {}
 
   apps/web: {}
+
+  libs/database:
+    dependencies:
+      '@betnext/shared-types':
+        specifier: workspace:*
+        version: link:../shared-types
+      '@nestjs/typeorm':
+        specifier: ^11.0.0
+        version: 11.0.1(@nestjs/common@11.1.27(class-transformer@0.5.1)(class-validator@0.14.4)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.27(@nestjs/common@11.1.27(class-transformer@0.5.1)(class-validator@0.14.4)(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2)(typeorm@0.3.30(pg@8.21.0)(ts-node@10.9.2(@types/node@22.19.21)(typescript@5.9.3)))
+      pg:
+        specifier: ^8.13.1
+        version: 8.21.0
+      reflect-metadata:
+        specifier: ^0.2.2
+        version: 0.2.2
+      typeorm:
+        specifier: ^0.3.20
+        version: 0.3.30(pg@8.21.0)(ts-node@10.9.2(@types/node@22.19.21)(typescript@5.9.3))
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.0
+        version: 22.19.21
+      dotenv:
+        specifier: ^16.4.7
+        version: 16.6.1
+      ts-node:
+        specifier: ^10.9.2
+        version: 10.9.2(@types/node@22.19.21)(typescript@5.9.3)
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
 
   libs/shared-events: {}
 
@@ -5737,7 +5771,7 @@ snapshots:
 
   dotenv-expand@12.0.3:
     dependencies:
-      dotenv: 16.4.7
+      dotenv: 16.6.1
 
   dotenv@16.4.7: {}
 

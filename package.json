@@ -16,10 +16,11 @@
     "test": "nx run-many -t test",
     "dev": "nx run-many -t dev",
     "graph": "nx graph",
-    "db:migrate": "pnpm --filter user-service db:migrate",
-    "db:migrate:revert": "pnpm --filter user-service db:migrate:revert",
-    "db:migrate:show": "pnpm --filter user-service db:migrate:show",
-    "prepare": "husky"
+    "db:migrate": "pnpm --filter @betnext/database db:migrate",
+    "db:migrate:revert": "pnpm --filter @betnext/database db:migrate:revert",
+    "db:migrate:show": "pnpm --filter @betnext/database db:migrate:show",
+    "prepare": "husky",
+    "db:seed": "pnpm --filter @betnext/database db:seed"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.0.2",

@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { BetNextErrorCode, type IUser } from '@betnext/shared-types';
 import { BetNextException } from '../common/exceptions/betnext.exception';
-import { UserEntity } from '../entities/user.entity';
+import { UserEntity } from '@betnext/database';
 
 @Injectable()
 export class UsersService {

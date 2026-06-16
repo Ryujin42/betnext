@@ -5,7 +5,7 @@ import { Repository } from 'typeorm';
 import { BetNextErrorCode, type IAuthTokens, type IUser, Role } from '@betnext/shared-types';
 import { isAdult } from '@betnext/shared-utils';
 import { BetNextException } from '../common/exceptions/betnext.exception';
-import { UserEntity } from '../entities/user.entity';
+import { UserEntity } from '@betnext/database';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { SessionContext, TokensService } from './tokens.service';
