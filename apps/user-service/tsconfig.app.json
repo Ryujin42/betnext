@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "module": "commonjs",
+    "types": ["node"],
+    "paths": {
+      "@betnext/shared-types": ["../../libs/shared-types/src/index.ts"],
+      "@betnext/shared-utils": ["../../libs/shared-utils/src/index.ts"]
+    }
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["dist", "node_modules", "**/*.spec.ts"]
+}

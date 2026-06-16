@@ -42,5 +42,17 @@ export default tseslint.config(
       'no-console': ['warn', { allow: ['warn', 'error'] }],
     },
   },
+  {
+    /*
+     * Apps NestJS : `emitDecoratorMetadata` rend les classes utilisées en
+     * annotation de paramètre runtime-only (DI, class-validator). La règle
+     * `consistent-type-imports` les convertirait à tort en `import type`,
+     * cassant l'injection. On la désactive sur ces dossiers.
+     */
+    files: ['apps/api-gateway/**/*.ts', 'apps/user-service/**/*.ts'],
+    rules: {
+      '@typescript-eslint/consistent-type-imports': 'off',
+    },
+  },
   eslintConfigPrettier,
 );

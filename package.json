@@ -16,6 +16,9 @@
     "test": "nx run-many -t test",
     "dev": "nx run-many -t dev",
     "graph": "nx graph",
+    "db:migrate": "pnpm --filter user-service db:migrate",
+    "db:migrate:revert": "pnpm --filter user-service db:migrate:revert",
+    "db:migrate:show": "pnpm --filter user-service db:migrate:show",
     "prepare": "husky"
   },
   "devDependencies": {
