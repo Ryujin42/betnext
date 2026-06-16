@@ -73,13 +73,13 @@ Tous les mots de passe sont `password`.
 
 | Rôle | Email | Pseudo |
 |------|-------|--------|
-| Admin | admin@betnext.gg | AdminBetNext |
-| Manager | manager@betnext.gg | Diarapak |
-| Utilisateur | faker@betnext.gg | Faker_Fan |
-| Utilisateur | t1@betnext.gg | T1_Enjoyer |
-| Utilisateur | geng@betnext.gg | GenG_King |
-| Utilisateur | g2@betnext.gg | G2_Believer |
-| Utilisateur | blg@betnext.gg | BLG_Support |
+| Admin | admin@betnext-v2.gg | AdminBetNext |
+| Manager | manager@betnext-v2.gg | Diarapak |
+| Utilisateur | faker@betnext-v2.gg | Faker_Fan |
+| Utilisateur | t1@betnext-v2.gg | T1_Enjoyer |
+| Utilisateur | geng@betnext-v2.gg | GenG_King |
+| Utilisateur | g2@betnext-v2.gg | G2_Believer |
+| Utilisateur | blg@betnext-v2.gg | BLG_Support |
 
 ---
 
@@ -97,7 +97,7 @@ apps/
 │   ── BACKEND ──
 ├── api-gateway/            → Point d'entrée unique (JWT, rate limit, throttler, WS)
 │
-├── user-service/           → Auth · KYC · Jeu responsable · bcrypt
+├── user-service/           → Auth · KYC · Jeu responsable · Argon2id
 ├── betting-service/        → Paris · Cotes · locked_odds
 ├── event-service/          → Compétitions · Game adapters (LoL, CS2, Valorant)
 ├── wallet-service/         → Stripe · Dépôt · Retrait · Solde
@@ -258,7 +258,9 @@ cote = total misé sur l'événement / total misé sur cette issue
 
 ### Sécurité
 
-- Mots de passe hashés via **bcrypt**
+- Mots de passe hashés via **Argon2id** (package `argon2` ; bcrypt déprécié)
+- **Access token JWT court (5 min)** + **refresh token** stocké et haché en BDD (`sessions`) avec infos complémentaires (`ip`, `user_agent`, `device`, `last_used_at`…)
+- Le refresh est **rotatif** (l'ancien est invalidé) et **re-vérifié en BDD** à chaque appel ; le client renouvelle l'access token de façon transparente (intercepteur _fetch-and-retry_ sur `401`)
 - JWT vérifié à l'API Gateway (aucun service interne ne refait la vérification)
 - Audit ARJEL : table PostgreSQL **append-only**, jamais de UPDATE/DELETE, conservation 5 ans
 
@@ -271,6 +273,8 @@ cote = total misé sur l'événement / total misé sur cette issue
 | `DATABASE_URL` | DSN PostgreSQL principal |
 | `REDIS_URL` | URL Redis (cache + BullMQ) |
 | `JWT_SECRET` | Secret de signature des tokens JWT |
+| `JWT_ACCESS_EXPIRY` | Durée de vie de l'access token (`5m`) |
+| `JWT_REFRESH_EXPIRY` | Durée de vie du refresh token (`7d`) |
 | `STRIPE_SECRET_KEY` | Clé secrète Stripe |
 | `STRIPE_WEBHOOK_SECRET` | Secret de validation des webhooks Stripe |
 | `RIOT_API_KEY` | Clé Riot Games API (EUW) |
