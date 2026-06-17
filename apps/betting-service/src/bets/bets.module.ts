@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { BetEntity, BetHistoryEntity, EsportEventEntity, OutcomeEntity } from '@betnext/database';
 import { BetsController } from './bets.controller';
 import { BetsService } from './bets.service';
+import { BetNotifier } from './bet-notifier';
 import { BetResolutionService } from './bet-resolution.service';
 import { BetResolutionProducer } from './bet-resolution.producer';
 import { BetResolutionWorker } from './bet-resolution.worker';
@@ -16,6 +17,12 @@ import { ResponsibleGamingModule } from '../responsible-gaming/responsible-gamin
     ResponsibleGamingModule,
   ],
   controllers: [BetsController],
-  providers: [BetsService, BetResolutionService, BetResolutionProducer, BetResolutionWorker],
+  providers: [
+    BetsService,
+    BetNotifier,
+    BetResolutionService,
+    BetResolutionProducer,
+    BetResolutionWorker,
+  ],
 })
 export class BetsModule {}

@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleInit, Optional } from '@nestjs/common';
 import { DataSource, In } from 'typeorm';
 import { BetStatus } from '@betnext/shared-types';
 import { BetEntity, OutcomeEntity } from '@betnext/database';
@@ -12,6 +12,7 @@ import {
   IEventBus,
   OddsUpdatedEvent,
 } from '@betnext/shared-events';
+import { CachedOdds, IOddsCache, ODDS_CACHE } from './odds-cache.interface';
 
 /** TTL du verrou de recalcul (« SET NX EX 60 » — cf. T5.2). */
 const LOCK_TTL_SECONDS = 60;
@@ -39,6 +40,10 @@ export class OddsRecalculationService implements OnModuleInit {
     private readonly dataSource: DataSource,
     @Inject(EVENT_BUS) private readonly bus: IEventBus,
     @Inject(DISTRIBUTED_LOCK) private readonly lock: IDistributedLock,
+    // Optional : Lot 7 — si le cache est branché (ODDS_CACHE), on alimente
+    // au passage. Tant qu'il n'est pas fourni (Lot 5/6, tests), le service
+    // fonctionne exactement comme avant.
+    @Optional() @Inject(ODDS_CACHE) private readonly cache: IOddsCache | null = null,
   ) {}
 
   onModuleInit(): void {
@@ -66,11 +71,44 @@ export class OddsRecalculationService implements OnModuleInit {
       odds: updates,
       occurredAt: new Date().toISOString(),
     };
+    if (this.cache) {
+      // T7.3 — alimente le fallback : si une lecture future ne peut pas
+      // recalculer (DB down), elle servira ce snapshot.
+      const snapshot: CachedOdds = {
+        eSportEventId,
+        odds: updates,
+        computedAt: payload.occurredAt,
+      };
+      await this.cache.set(snapshot);
+    }
     await this.bus.publish<OddsUpdatedEvent>(BetNextTopic.OddsUpdated, payload);
     this.logger.log(
       `Cotes recalculées pour l'événement ${eSportEventId} (${updates.length} issues).`,
     );
     return payload;
+  }
+
+  /**
+   * Lecture résiliente (T7.3) : tente un recalcul frais, retombe sur la
+   * dernière valeur connue en cache si le recompute échoue (DB indisponible,
+   * verrou non acquis sans cache mis à jour, etc.). Renvoie `null` si on n'a
+   * jamais cotée cet événement.
+   */
+  async getLastKnownOdds(eSportEventId: number): Promise<CachedOdds | null> {
+    try {
+      const fresh = await this.recalculate(eSportEventId);
+      if (fresh) {
+        return { eSportEventId, odds: fresh.odds, computedAt: fresh.occurredAt };
+      }
+    } catch (err) {
+      this.logger.warn(
+        `Recalcul cotes event ${eSportEventId} en échec, fallback sur cache : ${(err as Error).message}`,
+      );
+    }
+    if (this.cache) {
+      return this.cache.get(eSportEventId);
+    }
+    return null;
   }
 
   /** Lit les mises courantes, applique la formule, persiste les cotes (transaction). */

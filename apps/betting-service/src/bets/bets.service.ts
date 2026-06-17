@@ -12,6 +12,7 @@ import {
   IResponsibleGaming,
   RESPONSIBLE_GAMING,
 } from '../responsible-gaming/responsible-gaming.interface';
+import { BetNotifier } from './bet-notifier';
 
 /**
  * Placement (T5.1) et historique (T5.4) des paris.
@@ -34,6 +35,7 @@ export class BetsService {
     @Inject(WALLET_SERVICE) private readonly wallet: IWalletService,
     @Inject(RESPONSIBLE_GAMING) private readonly rg: IResponsibleGaming,
     @Inject(EVENT_BUS) private readonly bus: IEventBus,
+    private readonly notifier: BetNotifier,
   ) {}
 
   async placeBet(userId: number, dto: PlaceBetDto): Promise<IBet> {
@@ -108,6 +110,10 @@ export class BetsService {
       lockedOdds,
       occurredAt: new Date().toISOString(),
     });
+
+    // T7.3 — notification non bloquante : on tente le push mais on n'échoue
+    // jamais. Cf. {@link BetNotifier}.
+    await this.notifier.notifyBetPlaced(userId, bet.id, Number(bet.amount));
 
     return bet.toPublic();
   }
