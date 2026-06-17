@@ -22,6 +22,9 @@ export const BetNextTopic = {
   RgLimitUpdated: 'rg.limit_updated',
   /** Émis par user-service quand un utilisateur s'auto-exclut (T7.2). */
   RgSelfExcluded: 'rg.self_excluded',
+  /** Émis par user-service quand un admin suspend / réactive un compte (T8.3). */
+  UserSuspended: 'user.suspended',
+  UserUnsuspended: 'user.unsuspended',
 } as const;
 
 export type BetNextTopic = (typeof BetNextTopic)[keyof typeof BetNextTopic];
