@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@betnext/database": "workspace:*",
+    "@betnext/shared-events": "workspace:*",
     "@betnext/shared-types": "workspace:*",
     "@betnext/shared-utils": "workspace:*",
     "@fastify/helmet": "^13.0.1",

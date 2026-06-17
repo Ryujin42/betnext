@@ -5,4 +5,7 @@ export * from './in-memory-event-bus';
 export * from './distributed-lock.interface';
 export * from './in-memory-lock';
 export * from './redis-distributed-lock';
+export * from './redis-event-bus';
 export * from './messaging.module';
+export * from './bullmq-queues';
+export * from './bullmq.module';

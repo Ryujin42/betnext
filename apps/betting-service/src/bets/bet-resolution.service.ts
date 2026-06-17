@@ -1,16 +1,10 @@
-import { HttpStatus, Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { HttpStatus, Inject, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, Repository } from 'typeorm';
 import { BetNextErrorCode, BetStatus, EventStatus, TransactionType } from '@betnext/shared-types';
 import { BetEntity, BetHistoryEntity, EsportEventEntity, OutcomeEntity } from '@betnext/database';
 import { applyOdds, fromCents, toCents } from '@betnext/shared-utils';
-import {
-  BetNextTopic,
-  BetResolvedEvent,
-  EVENT_BUS,
-  EventResultSetEvent,
-  IEventBus,
-} from '@betnext/shared-events';
+import { BetNextTopic, BetResolvedEvent, EVENT_BUS, IEventBus } from '@betnext/shared-events';
 import { BetNextException } from '../common/betnext.exception';
 import { IWalletService, WALLET_SERVICE } from '../wallet/wallet.interface';
 
@@ -21,16 +15,18 @@ export interface ResolutionSummary {
 }
 
 /**
- * Résolution des paris (T5.3). Déclenchée par l'événement `event.result_set` du
- * bus (abonnement in-process au Lot 5 ; bus Redis inter-services au Lot 7) ou
- * par l'endpoint interne de déclenchement.
+ * Résolution des paris (T5.3 + T7.1). Déclenchée par un job BullMQ
+ * `bet-resolution` (Lot 7 : retry exponentiel en cas d'échec DB / réseau ;
+ * l'idempotence est intrinsèque car on ne traite que les paris encore PENDING).
+ * Le job est enqueué par {@link BetResolutionProducer} sur réception du
+ * topic bus `event.result_set`.
  *
- * Pour chaque pari PENDING de l'événement résolu : statut WON/LOST selon
- * `outcomes.is_winner`, gain `amount × locked_odds` crédité au gagnant, trace
- * append-only dans `bets_history`, puis émission `bet.won` / `bet.lost`.
+ * Pour chaque pari PENDING : statut WON/LOST selon `outcomes.is_winner`, gain
+ * `amount × locked_odds` crédité au gagnant, trace append-only dans
+ * `bets_history`, puis émission `bet.won` / `bet.lost`.
  */
 @Injectable()
-export class BetResolutionService implements OnModuleInit {
+export class BetResolutionService {
   private readonly logger = new Logger(BetResolutionService.name);
 
   constructor(
@@ -44,12 +40,6 @@ export class BetResolutionService implements OnModuleInit {
     @Inject(WALLET_SERVICE) private readonly wallet: IWalletService,
     @Inject(EVENT_BUS) private readonly bus: IEventBus,
   ) {}
-
-  onModuleInit(): void {
-    this.bus.subscribe<EventResultSetEvent>(BetNextTopic.EventResultSet, async (event) => {
-      await this.resolveForEvent(event.eSportEventId);
-    });
-  }
 
   async resolveForEvent(eSportEventId: number): Promise<ResolutionSummary> {
     const event = await this.events.findOne({ where: { id: eSportEventId } });

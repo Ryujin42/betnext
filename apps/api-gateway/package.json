@@ -10,7 +10,11 @@
     "test": "jest"
   },
   "dependencies": {
+    "@betnext/shared-events": "workspace:*",
     "@betnext/shared-types": "workspace:*",
+    "@bull-board/api": "^6.5.0",
+    "@bull-board/fastify": "^6.5.0",
+    "bullmq": "^5.34.0",
     "@fastify/helmet": "^13.0.1",
     "@nestjs/axios": "^4.0.0",
     "@nestjs/common": "^11.0.1",

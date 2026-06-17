@@ -15,7 +15,7 @@ import { HealthController } from './health/health.controller';
   imports: [
     ConfigModule.forRoot({ isGlobal: true, envFilePath: ['.env', '../../.env'] }),
     TypeOrmModule.forRootAsync({ useFactory: databaseConfigFactory }),
-    MessagingModule,
+    MessagingModule.forRoot(),
     OddsModule,
   ],
   controllers: [HealthController],

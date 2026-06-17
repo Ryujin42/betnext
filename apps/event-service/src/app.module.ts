@@ -12,7 +12,7 @@ import { EventsModule } from './events/events.module';
   imports: [
     ConfigModule.forRoot({ isGlobal: true, envFilePath: ['.env', '../../.env'] }),
     TypeOrmModule.forRootAsync({ useFactory: databaseConfigFactory }),
-    MessagingModule,
+    MessagingModule.forRoot(),
     AdaptersModule,
     EventsModule,
   ],

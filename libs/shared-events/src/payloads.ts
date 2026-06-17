@@ -47,3 +47,20 @@ export interface PaymentMovementEvent {
   transactionId: number;
   occurredAt: string;
 }
+
+/** `rg.limit_updated` — limites RG modifiées (immédiat OU pending 48h). */
+export interface RgLimitUpdatedEvent {
+  userId: number;
+  /** `immediate` pour une baisse / un retrait de limite, `pending` pour une hausse différée 48h. */
+  effect: 'immediate' | 'pending';
+  /** Date d'effet (= maintenant si `immediate`, +48h si `pending`). */
+  effectiveAt: string;
+  occurredAt: string;
+}
+
+/** `rg.self_excluded` — auto-exclusion activée (bloque la connexion jusqu'à la date). */
+export interface RgSelfExcludedEvent {
+  userId: number;
+  selfExcludedUntil: string;
+  occurredAt: string;
+}

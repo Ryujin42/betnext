@@ -1,6 +1,7 @@
 import 'reflect-metadata';
 import { BetEntity, OutcomeEntity } from '@betnext/database';
 import { InMemoryLock } from '@betnext/shared-events';
+import { InMemoryOddsCache } from './in-memory-odds-cache';
 import { OddsRecalculationService } from './odds-recalculation.service';
 
 interface OutcomeRow {
@@ -105,5 +106,67 @@ describe('OddsRecalculationService (T5.2)', () => {
     // Le verrou en sérialise un seul ; l'autre est ignoré (null).
     expect(dataSource.transaction).toHaveBeenCalledTimes(1);
     expect([a, b].filter((r) => r === null)).toHaveLength(1);
+  });
+});
+
+describe('OddsRecalculationService.getLastKnownOdds (T7.3 — fallback cache)', () => {
+  it('au succès du recompute, écrit le snapshot dans le cache', async () => {
+    const outcomes: OutcomeRow[] = [{ id: 1, eSportEventId: 10, odds: '1.50' }];
+    const bets = [{ outcomeId: 1, amount: '100.00' }];
+    const { dataSource } = makeDataSource(outcomes, bets);
+    const bus = { publish: jest.fn(), subscribe: jest.fn() };
+    const cache = new InMemoryOddsCache();
+    const service = new OddsRecalculationService(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      dataSource as any,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      bus as any,
+      new InMemoryLock(),
+      cache,
+    );
+
+    const result = await service.getLastKnownOdds(10);
+    expect(result?.odds).toEqual([{ outcomeId: 1, odds: 1.1 }]);
+    expect(await cache.get(10)).not.toBeNull();
+  });
+
+  it('si le recompute throw, retombe sur la dernière valeur du cache', async () => {
+    const cache = new InMemoryOddsCache();
+    await cache.set({
+      eSportEventId: 10,
+      odds: [{ outcomeId: 1, odds: 1.85 }],
+      computedAt: '2026-06-17T08:00:00.000Z',
+    });
+    const dataSource = {
+      transaction: jest.fn().mockRejectedValue(new Error('DB down')),
+    };
+    const bus = { publish: jest.fn(), subscribe: jest.fn() };
+    const service = new OddsRecalculationService(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      dataSource as any,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      bus as any,
+      new InMemoryLock(),
+      cache,
+    );
+
+    const result = await service.getLastKnownOdds(10);
+    expect(result?.odds).toEqual([{ outcomeId: 1, odds: 1.85 }]);
+  });
+
+  it('si compute throw ET cache vide → null (pas de propagation)', async () => {
+    const dataSource = {
+      transaction: jest.fn().mockRejectedValue(new Error('DB down')),
+    };
+    const bus = { publish: jest.fn(), subscribe: jest.fn() };
+    const service = new OddsRecalculationService(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      dataSource as any,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      bus as any,
+      new InMemoryLock(),
+      new InMemoryOddsCache(),
+    );
+    await expect(service.getLastKnownOdds(99)).resolves.toBeNull();
   });
 });

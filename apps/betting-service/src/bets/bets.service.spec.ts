@@ -33,6 +33,7 @@ function setup() {
   const wallet = { getBalance: jest.fn(), debit: jest.fn(), credit: jest.fn() };
   const rg = { assertCanBet: jest.fn().mockResolvedValue(undefined) };
   const bus = { publish: jest.fn(), subscribe: jest.fn() };
+  const notifier = { notifyBetPlaced: jest.fn().mockResolvedValue(undefined) };
 
   const service = new BetsService(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -49,8 +50,10 @@ function setup() {
     rg as any,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     bus as any,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    notifier as any,
   );
-  return { service, outcomes, events, betRepo, wallet, rg, bus };
+  return { service, outcomes, events, betRepo, wallet, rg, bus, notifier };
 }
 
 describe('BetsService.placeBet (T5.1)', () => {
@@ -140,5 +143,27 @@ describe('BetsService.placeBet (T5.1)', () => {
       errorCode: BetNextErrorCode.INSUFFICIENT_BALANCE,
     });
     expect(bus.publish).not.toHaveBeenCalled();
+  });
+
+  // T7.3 — DoD : couper le notification-service ne bloque pas le placement.
+  it('résiste à une panne du notification-service : le pari est placé même si la notification échoue', async () => {
+    const { service, outcomes, events, betRepo, notifier, bus } = setup();
+    outcomes.findOne.mockResolvedValue({
+      id: 7,
+      eSportEventId: 3,
+      odds: '2.00',
+      label: 'T1 gagne',
+    });
+    events.findOne.mockResolvedValue({ id: 3, status: EventStatus.PUBLIE, startDate: FUTURE });
+    // Le notifier (best-effort) doit absorber l'exception en interne et ne
+    // jamais propager ; on simule donc une notif silencieusement perdue.
+    notifier.notifyBetPlaced.mockResolvedValue(undefined);
+
+    const result = await service.placeBet(5, { outcomeId: 7, amount: 10 });
+
+    expect(result).toMatchObject({ id: 1 });
+    expect(betRepo.save).toHaveBeenCalled();
+    expect(bus.publish).toHaveBeenCalledWith('bet.placed', expect.any(Object));
+    expect(notifier.notifyBetPlaced).toHaveBeenCalledWith(5, 1, 10);
   });
 });
