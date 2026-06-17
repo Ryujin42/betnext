@@ -36,6 +36,7 @@ export class RelayService {
   private readonly logger = new Logger(RelayService.name);
   private readonly userServiceUrl: string;
   private readonly eventServiceUrl: string;
+  private readonly bettingServiceUrl: string;
 
   constructor(
     private readonly http: HttpService,
@@ -43,6 +44,7 @@ export class RelayService {
   ) {
     this.userServiceUrl = config.get<string>('USER_SERVICE_URL') ?? 'http://localhost:3001';
     this.eventServiceUrl = config.get<string>('EVENT_SERVICE_URL') ?? 'http://localhost:3002';
+    this.bettingServiceUrl = config.get<string>('BETTING_SERVICE_URL') ?? 'http://localhost:3003';
   }
 
   forwardToUserService<T>(method: Method, path: string, options: ForwardOptions = {}): Promise<T> {
@@ -51,6 +53,14 @@ export class RelayService {
 
   forwardToEventService<T>(method: Method, path: string, options: ForwardOptions = {}): Promise<T> {
     return this.forward<T>(this.eventServiceUrl, method, path, options);
+  }
+
+  forwardToBettingService<T>(
+    method: Method,
+    path: string,
+    options: ForwardOptions = {},
+  ): Promise<T> {
+    return this.forward<T>(this.bettingServiceUrl, method, path, options);
   }
 
   private async forward<T>(
@@ -71,18 +81,27 @@ export class RelayService {
     }
 
     try {
-      const { data } = await firstValueFrom(
+      const response = await firstValueFrom(
         this.http.request<T>({
           method,
           url: `${baseUrl}${path}`,
           data: options.body,
           headers,
-          // Le gateway gère son propre filtre — qu'axios remonte tout.
-          validateStatus: (status) => status < 500,
+          // On accepte tous les statuts pour gérer nous-mêmes la propagation :
+          // un 4xx métier en aval doit conserver son code HTTP et son
+          // `errorCode` (et non être renvoyé comme un succès au client).
+          validateStatus: () => true,
         }),
       );
-      return data;
+      if (response.status >= 400) {
+        this.throwDownstream(response.status, response.data);
+      }
+      return response.data;
     } catch (err) {
+      // Erreur métier déjà formatée par throwDownstream : on la laisse passer.
+      if (err instanceof HttpException) {
+        throw err;
+      }
       if (axios.isAxiosError(err) && err.response) {
         this.throwDownstream(err.response.status, err.response.data);
       }
@@ -93,9 +112,6 @@ export class RelayService {
         'Service interne indisponible.',
       );
     }
-
-    // Si validateStatus a laissé passer un 4xx, axios ne throw pas → on
-    // gère ici les erreurs métier que le service a déjà formatées.
   }
 
   /** Re-projette une réponse d'erreur downstream en BetNextException. */

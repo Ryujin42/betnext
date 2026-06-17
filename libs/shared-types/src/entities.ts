@@ -111,6 +111,20 @@ export interface IBetHistory {
   betId: number;
 }
 
+/**
+ * Vue enrichie d'un pari pour l'historique utilisateur (T5.4) : pari + contexte
+ * événement/issue assemblé par JOIN (schéma unique).
+ */
+export interface IBetView extends IBet {
+  eventName: string;
+  eventStatus: EventStatus;
+  outcomeLabel: string;
+  /** Gain potentiel `amount × lockedOdds` (pari en cours ou gagné). */
+  potentialGain: number;
+  /** Gain effectif : crédité si gagné, `0` si perdu, `null` si encore en cours. */
+  actualGain: number | null;
+}
+
 // ── Schéma `wallet` ───────────────────────────────────────────────────────
 
 export interface ITransaction {
