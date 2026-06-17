@@ -47,7 +47,7 @@ export function TableCell({
   className,
   align = 'left',
 }: {
-  children: ReactNode;
+  children?: ReactNode;
   header?: boolean;
   className?: string;
   align?: 'left' | 'right' | 'center';
