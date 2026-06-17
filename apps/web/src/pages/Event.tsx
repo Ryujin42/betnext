@@ -7,6 +7,7 @@ import { placeBet } from '../api/bets';
 import { ApiException } from '../api/client';
 import { useWalletStore } from '../store/wallet';
 import { useLiveOddsStore } from '../store/live-odds';
+import { useLiveOdds } from '../realtime/useLiveOdds';
 
 function formatEur(value: number): string {
   return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(value);
@@ -27,9 +28,10 @@ export function EventPage() {
   const outcomesQ = useQuery<Outcome[]>({
     queryKey: ['events', id, 'outcomes'],
     queryFn: () => getOutcomes(id),
-    // Rafraîchit toutes les 5s en attendant les cotes live WebSocket (T9.3).
-    refetchInterval: 5_000,
   });
+
+  // T9.3 — cotes live : abonnement à la salle `event:<id>` sur le gateway.
+  useLiveOdds(Number.isFinite(id) ? id : null);
 
   const [picked, setPicked] = useState<Outcome | null>(null);
 

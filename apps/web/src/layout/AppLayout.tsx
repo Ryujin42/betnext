@@ -1,10 +1,11 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, Outlet, useRouterState } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
 import { Button, cn } from '@betnext/ui';
 import { useAuth } from '../auth/AuthContext';
 import { getBalance, type Balance } from '../api/wallet';
 import { useWalletStore } from '../store/wallet';
+import { useBetNotifications, type BetNotification } from '../realtime/useBetNotifications';
 
 const NAV = [
   { to: '/', label: 'Catalogue' },
@@ -27,6 +28,16 @@ export function AppLayout() {
   useEffect(() => {
     if (balanceQ.data) setBalance(balanceQ.data.amount);
   }, [balanceQ.data, setBalance]);
+
+  // T9.3 — notifs `bet.won` / `bet.lost` reçues via WebSocket sur `user:<id>`.
+  const lastNotif = useBetNotifications();
+  const [visible, setVisible] = useState<BetNotification | null>(null);
+  useEffect(() => {
+    if (!lastNotif) return;
+    setVisible(lastNotif);
+    const t = setTimeout(() => setVisible(null), 6000);
+    return () => clearTimeout(t);
+  }, [lastNotif]);
 
   return (
     <div className="flex min-h-full flex-col">
@@ -72,6 +83,26 @@ export function AppLayout() {
       <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-8">
         <Outlet />
       </main>
+      {visible && (
+        <div
+          className={cn(
+            'fixed bottom-6 right-6 z-50 max-w-sm rounded-2xl border p-4 shadow-xl',
+            visible.type === 'won'
+              ? 'border-success-500/40 bg-success-500/10 text-emerald-100'
+              : 'border-danger-500/40 bg-danger-500/10 text-red-100',
+          )}
+        >
+          <div className="text-xs uppercase tracking-wide">
+            {visible.type === 'won' ? 'Pari gagné' : 'Pari perdu'}
+          </div>
+          <div className="mt-1 text-base font-semibold">
+            {visible.type === 'won'
+              ? `+${formatEur(visible.payout)} crédités`
+              : `Mise de ${formatEur(visible.amount)} perdue`}
+          </div>
+          <div className="mt-0.5 text-xs opacity-80">Pari #{visible.betId}</div>
+        </div>
+      )}
     </div>
   );
 }
