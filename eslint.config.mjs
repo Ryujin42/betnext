@@ -55,6 +55,7 @@ export default tseslint.config(
       'apps/event-service/**/*.ts',
       'apps/betting-service/**/*.ts',
       'apps/odds-engine/**/*.ts',
+      'apps/wallet-service/**/*.ts',
       'libs/odds/**/*.ts',
     ],
     rules: {

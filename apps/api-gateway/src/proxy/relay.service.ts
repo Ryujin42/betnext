@@ -37,6 +37,7 @@ export class RelayService {
   private readonly userServiceUrl: string;
   private readonly eventServiceUrl: string;
   private readonly bettingServiceUrl: string;
+  private readonly walletServiceUrl: string;
 
   constructor(
     private readonly http: HttpService,
@@ -45,6 +46,7 @@ export class RelayService {
     this.userServiceUrl = config.get<string>('USER_SERVICE_URL') ?? 'http://localhost:3001';
     this.eventServiceUrl = config.get<string>('EVENT_SERVICE_URL') ?? 'http://localhost:3002';
     this.bettingServiceUrl = config.get<string>('BETTING_SERVICE_URL') ?? 'http://localhost:3003';
+    this.walletServiceUrl = config.get<string>('WALLET_SERVICE_URL') ?? 'http://localhost:3005';
   }
 
   forwardToUserService<T>(method: Method, path: string, options: ForwardOptions = {}): Promise<T> {
@@ -61,6 +63,14 @@ export class RelayService {
     options: ForwardOptions = {},
   ): Promise<T> {
     return this.forward<T>(this.bettingServiceUrl, method, path, options);
+  }
+
+  forwardToWalletService<T>(
+    method: Method,
+    path: string,
+    options: ForwardOptions = {},
+  ): Promise<T> {
+    return this.forward<T>(this.walletServiceUrl, method, path, options);
   }
 
   private async forward<T>(
