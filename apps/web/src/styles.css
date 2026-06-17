@@ -1,0 +1,16 @@
+@import 'tailwindcss';
+@import '@betnext/ui/tokens.css';
+
+body {
+  background:
+    radial-gradient(ellipse at top, rgba(79, 70, 229, 0.18), transparent 60%),
+    var(--color-surface-0);
+  color: var(--color-ink-100);
+  font-family:
+    'Inter',
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+}
