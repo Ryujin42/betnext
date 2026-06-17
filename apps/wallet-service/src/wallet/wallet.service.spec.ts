@@ -136,4 +136,34 @@ describe('WalletService (Lot 6)', () => {
     });
     expect(balanceStore.get(3)?.amount).toBe('100.00');
   });
+
+  /*
+   * T6.1 — consommateurs `bet.placed` / `bet.won`. Inactifs au Lot 6 (bus
+   * in-memory mono-processus, le betting-service reste l'auteur du débit
+   * synchrone), mais déjà couverts ici pour le passage au bus Redis du Lot 7.
+   */
+  it('debitForBet : débite le solde et trace une transaction BET (idempotente)', async () => {
+    const { service, balanceStore, txStore } = setup(100);
+    await service.debitForBet(42, 3, 30);
+    await service.debitForBet(42, 3, 30); // rejeu : référence bet:42:placed déjà tracée
+    expect(balanceStore.get(3)?.amount).toBe('70.00');
+    expect(txStore.filter((t) => t.stripeId === 'bet:42:placed')).toHaveLength(1);
+    expect(txStore.filter((t) => t.type === TransactionType.BET)).toHaveLength(1);
+  });
+
+  it('debitForBet : solde insuffisant → ne débite pas et ne trace rien', async () => {
+    const { service, balanceStore, txStore } = setup(10);
+    await service.debitForBet(99, 3, 50);
+    expect(balanceStore.get(3)?.amount).toBe('10.00');
+    expect(txStore.filter((t) => t.stripeId === 'bet:99:placed')).toHaveLength(0);
+  });
+
+  it('creditForWin : crédite le solde et trace une transaction WIN (idempotente)', async () => {
+    const { service, balanceStore, txStore } = setup(100);
+    await service.creditForWin(7, 3, 80);
+    await service.creditForWin(7, 3, 80); // rejeu : référence bet:7:won déjà tracée
+    expect(balanceStore.get(3)?.amount).toBe('180.00');
+    expect(txStore.filter((t) => t.stripeId === 'bet:7:won')).toHaveLength(1);
+    expect(txStore.filter((t) => t.type === TransactionType.WIN)).toHaveLength(1);
+  });
 });
