@@ -53,6 +53,9 @@ export default tseslint.config(
       'apps/api-gateway/**/*.ts',
       'apps/user-service/**/*.ts',
       'apps/event-service/**/*.ts',
+      'apps/betting-service/**/*.ts',
+      'apps/odds-engine/**/*.ts',
+      'libs/odds/**/*.ts',
     ],
     rules: {
       '@typescript-eslint/consistent-type-imports': 'off',

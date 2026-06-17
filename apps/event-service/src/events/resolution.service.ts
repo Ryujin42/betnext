@@ -1,8 +1,14 @@
-import { HttpStatus, Injectable, Logger } from '@nestjs/common';
+import { HttpStatus, Inject, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { BetNextErrorCode, EventStatus } from '@betnext/shared-types';
 import { EsportEventEntity, EventTeamEntity, OutcomeEntity } from '@betnext/database';
+import {
+  BetNextTopic,
+  EVENT_BUS,
+  type EventResultSetEvent,
+  type IEventBus,
+} from '@betnext/shared-events';
 import { BetNextException } from '../common/betnext.exception';
 import { canTransition } from './event-lifecycle';
 import { decideOutcomeWinner, type ResolutionContext } from './resolve-outcome';
@@ -12,8 +18,9 @@ import type { SetResultDto } from './dto/set-result.dto';
  * Saisie du résultat d'un événement (T4.4) : applique le classement aux
  * `event_teams`, résout chaque outcome (`is_winner`) via la logique pure
  * `decideOutcomeWinner`, et fait passer l'événement en TERMINE — le tout
- * dans une transaction. L'émission `event.result_set` sur le bus arrive au
- * Lot 7 (placeholder loggé ici).
+ * dans une transaction. Après commit, émet `event.result_set` sur le bus, ce
+ * qui déclenche la résolution des paris (T5.3). Au Lot 7, le bus in-memory
+ * devient Redis/BullMQ : la résolution se fera alors inter-services.
  */
 @Injectable()
 export class ResolutionService {
@@ -23,6 +30,7 @@ export class ResolutionService {
     @InjectRepository(EsportEventEntity)
     private readonly events: Repository<EsportEventEntity>,
     private readonly dataSource: DataSource,
+    @Inject(EVENT_BUS) private readonly bus: IEventBus,
   ) {}
 
   async setResult(eventId: number, dto: SetResultDto): Promise<EsportEventEntity> {
@@ -42,7 +50,7 @@ export class ResolutionService {
       );
     }
 
-    return this.dataSource.transaction(async (manager) => {
+    const saved = await this.dataSource.transaction(async (manager) => {
       const eventTeams = await manager.find(EventTeamEntity, { where: { eSportEventId: eventId } });
       const validIds = new Set(eventTeams.map((et) => et.id));
 
@@ -78,13 +86,21 @@ export class ResolutionService {
       await manager.save(outcomes);
 
       event.status = EventStatus.TERMINE;
-      const saved = await manager.save(event);
+      const persisted = await manager.save(event);
 
       const winners = outcomes.filter((o) => o.isWinner).length;
-      this.logger.warn(
-        `event.result_set (à publier sur le bus — Lot 7) eventId=${eventId} gagnants=${winners}/${outcomes.length}`,
+      this.logger.log(
+        `Résultat saisi pour l'événement ${eventId} : ${winners}/${outcomes.length} issues gagnantes.`,
       );
-      return saved;
+      return persisted;
     });
+
+    // Après commit : déclenche la résolution des paris (T5.3) via le bus.
+    await this.bus.publish<EventResultSetEvent>(BetNextTopic.EventResultSet, {
+      eSportEventId: eventId,
+      occurredAt: new Date().toISOString(),
+    });
+
+    return saved;
   }
 }
