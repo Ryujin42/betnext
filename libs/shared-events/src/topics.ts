@@ -14,6 +14,10 @@ export const BetNextTopic = {
   BetWon: 'bet.won',
   /** Émis par betting-service à la résolution d'un pari perdant (T5.3). */
   BetLost: 'bet.lost',
+  /** Émis par wallet-service après un dépôt crédité (T6.3). */
+  PaymentDeposited: 'payment.deposited',
+  /** Émis par wallet-service après un retrait débité (T6.3). */
+  PaymentWithdrawn: 'payment.withdrawn',
 } as const;
 
 export type BetNextTopic = (typeof BetNextTopic)[keyof typeof BetNextTopic];

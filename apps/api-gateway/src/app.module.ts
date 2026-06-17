@@ -9,6 +9,8 @@ import { EventsController } from './events/events.controller';
 import { HealthController } from './health/health.controller';
 import { ProxyModule } from './proxy/proxy.module';
 import { UsersController } from './users/users.controller';
+import { WalletController } from './wallet/wallet.controller';
+import { WalletWebhookController } from './wallet/wallet-webhook.controller';
 
 @Module({
   imports: [
@@ -25,6 +27,8 @@ import { UsersController } from './users/users.controller';
     AdminController,
     EventsController,
     BetsController,
+    WalletController,
+    WalletWebhookController,
   ],
   providers: [{ provide: APP_FILTER, useClass: BetNextExceptionFilter }],
 })

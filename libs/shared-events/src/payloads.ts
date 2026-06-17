@@ -39,3 +39,11 @@ export interface BetResolvedEvent {
   payout: number;
   occurredAt: string;
 }
+
+/** `payment.deposited` / `payment.withdrawn` — mouvement de portefeuille (T6.3). */
+export interface PaymentMovementEvent {
+  userId: number;
+  amount: number;
+  transactionId: number;
+  occurredAt: string;
+}
