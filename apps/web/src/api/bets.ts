@@ -20,14 +20,10 @@ export interface BetView extends Bet {
   actualGain: number | null;
 }
 
-export function placeBet(input: {
-  outcomeId: number;
-  amount: number;
-  expectedOdds: number;
-}): Promise<Bet> {
+export function placeBet(input: { outcomeId: number; amount: number }): Promise<Bet> {
   return api<Bet>('/bets', { method: 'POST', body: input });
 }
 
 export function listMyBets(): Promise<BetView[]> {
-  return api<BetView[]>('/bets');
+  return api<BetView[]>('/bets/me');
 }
