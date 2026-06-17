@@ -35,16 +35,22 @@ type Method = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 export class RelayService {
   private readonly logger = new Logger(RelayService.name);
   private readonly userServiceUrl: string;
+  private readonly eventServiceUrl: string;
 
   constructor(
     private readonly http: HttpService,
     config: ConfigService,
   ) {
     this.userServiceUrl = config.get<string>('USER_SERVICE_URL') ?? 'http://localhost:3001';
+    this.eventServiceUrl = config.get<string>('EVENT_SERVICE_URL') ?? 'http://localhost:3002';
   }
 
   forwardToUserService<T>(method: Method, path: string, options: ForwardOptions = {}): Promise<T> {
     return this.forward<T>(this.userServiceUrl, method, path, options);
+  }
+
+  forwardToEventService<T>(method: Method, path: string, options: ForwardOptions = {}): Promise<T> {
+    return this.forward<T>(this.eventServiceUrl, method, path, options);
   }
 
   private async forward<T>(
@@ -53,10 +59,12 @@ export class RelayService {
     path: string,
     options: ForwardOptions,
   ): Promise<T> {
-    const headers: Record<string, string> = {
-      'content-type': 'application/json',
-      ...(options.headers ?? {}),
-    };
+    const headers: Record<string, string> = { ...(options.headers ?? {}) };
+    // N'imposer `content-type: application/json` que s'il y a un corps : sinon
+    // Fastify rejette (400) un POST sans corps (ex. publish/close/cancel).
+    if (options.body !== undefined) {
+      headers['content-type'] = 'application/json';
+    }
     if (options.user) {
       headers['x-user-id'] = String(options.user.id);
       headers['x-user-role'] = options.user.role;
