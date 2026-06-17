@@ -4,6 +4,8 @@ import { BetEntity, BetHistoryEntity, EsportEventEntity, OutcomeEntity } from '@
 import { BetsController } from './bets.controller';
 import { BetsService } from './bets.service';
 import { BetResolutionService } from './bet-resolution.service';
+import { BetResolutionProducer } from './bet-resolution.producer';
+import { BetResolutionWorker } from './bet-resolution.worker';
 import { WalletModule } from '../wallet/wallet.module';
 import { ResponsibleGamingModule } from '../responsible-gaming/responsible-gaming.module';
 
@@ -14,6 +16,6 @@ import { ResponsibleGamingModule } from '../responsible-gaming/responsible-gamin
     ResponsibleGamingModule,
   ],
   controllers: [BetsController],
-  providers: [BetsService, BetResolutionService],
+  providers: [BetsService, BetResolutionService, BetResolutionProducer, BetResolutionWorker],
 })
 export class BetsModule {}
