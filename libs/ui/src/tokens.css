@@ -1,0 +1,27 @@
+/**
+ * Tokens design BetNext (Lot 8). Importés par les apps Tailwind via
+ * `@import "@betnext/ui/tokens.css";`. Couleurs alignées sur l'identité
+ * « e-sport / dark » du brief (« faut que ça claque »).
+ */
+@theme {
+  --color-brand-50: #eef4ff;
+  --color-brand-100: #dde9ff;
+  --color-brand-500: #4f46e5;
+  --color-brand-600: #4338ca;
+  --color-brand-700: #3730a3;
+
+  --color-surface-0: #0b0f19;
+  --color-surface-50: #11172a;
+  --color-surface-100: #1a2237;
+  --color-surface-200: #232c45;
+  --color-surface-300: #2e3a5a;
+
+  --color-ink-50: #f4f6fb;
+  --color-ink-100: #e3e7f1;
+  --color-ink-300: #98a2bd;
+  --color-ink-500: #5d6890;
+
+  --color-success-500: #10b981;
+  --color-warning-500: #f59e0b;
+  --color-danger-500: #ef4444;
+}

@@ -3,5 +3,6 @@ packages:
   - 'libs/*'
 allowBuilds:
   argon2: true
+  esbuild: true
   msgpackr-extract: false
   nx: true

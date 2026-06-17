@@ -1,0 +1,14 @@
+@import 'tailwindcss';
+@import '@betnext/ui/tokens.css';
+
+body {
+  background: var(--color-surface-0);
+  color: var(--color-ink-100);
+  font-family:
+    'Inter',
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+}
