@@ -12,7 +12,7 @@ import { BetsModule } from './bets/bets.module';
   imports: [
     ConfigModule.forRoot({ isGlobal: true, envFilePath: ['.env', '../../.env'] }),
     TypeOrmModule.forRootAsync({ useFactory: databaseConfigFactory }),
-    MessagingModule,
+    MessagingModule.forRoot(),
     // Lot 5 : recalcul des cotes in-process (bus in-memory mono-processus).
     // Au Lot 7, ce recalcul migre vers l'odds-engine via le bus Redis.
     OddsModule,

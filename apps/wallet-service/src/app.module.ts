@@ -11,7 +11,7 @@ import { WalletModule } from './wallet/wallet.module';
   imports: [
     ConfigModule.forRoot({ isGlobal: true, envFilePath: ['.env', '../../.env'] }),
     TypeOrmModule.forRootAsync({ useFactory: databaseConfigFactory }),
-    MessagingModule,
+    MessagingModule.forRoot(),
     WalletModule,
   ],
   providers: [{ provide: APP_FILTER, useClass: BetNextExceptionFilter }],
