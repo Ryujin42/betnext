@@ -122,4 +122,14 @@ export class EventsController {
   ): Promise<IEvent> {
     return this.relay.forwardToEventService('POST', `/events/${id}/result`, { user, body });
   }
+
+  /** T8.4 — import : récupère les events live d'un adaptateur (mocké) pour copier-coller. */
+  @Get('import/:type')
+  @Roles(Role.MANAGER)
+  importLive(
+    @Param('type') type: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<unknown[]> {
+    return this.relay.forwardToEventService('GET', `/adapters/${type}/live`, { user });
+  }
 }

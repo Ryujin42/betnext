@@ -87,6 +87,21 @@ export class AuthService {
       throw AuthService.invalidCredentials();
     }
 
+    // T8.3 — suspension admin : connexion refusée tant que `suspended_at`
+    // n'est pas levé. Vérifié après mot de passe pour ne pas révéler
+    // l'existence du compte (OWASP user enumeration).
+    if (user.suspendedAt) {
+      throw new BetNextException(
+        BetNextErrorCode.ACCOUNT_SUSPENDED,
+        HttpStatus.FORBIDDEN,
+        'Compte suspendu — contactez le support.',
+        {
+          suspendedAt: user.suspendedAt.toISOString(),
+          suspendedReason: user.suspendedReason,
+        },
+      );
+    }
+
     // T7.2 — auto-exclusion : la connexion est refusée tant que la date de
     // fin n'est pas atteinte, indépendamment des identifiants valides. On
     // **vérifie après** le mot de passe pour ne pas révéler l'existence du

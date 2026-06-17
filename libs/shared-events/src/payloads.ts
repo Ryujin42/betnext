@@ -64,3 +64,18 @@ export interface RgSelfExcludedEvent {
   selfExcludedUntil: string;
   occurredAt: string;
 }
+
+/** `user.suspended` — un admin a suspendu un compte (T8.3). */
+export interface UserSuspendedEvent {
+  userId: number;
+  adminId: number;
+  reason: string | null;
+  occurredAt: string;
+}
+
+/** `user.unsuspended` — un admin a levé une suspension (T8.3). */
+export interface UserUnsuspendedEvent {
+  userId: number;
+  adminId: number;
+  occurredAt: string;
+}

@@ -55,7 +55,10 @@ function makeTokens(): jest.Mocked<TokensService> {
   } as unknown as jest.Mocked<TokensService>;
 }
 
-async function makeRealUser(plainPassword: string): Promise<UserEntity> {
+async function makeRealUser(
+  plainPassword: string,
+  overrides: Partial<UserEntity> = {},
+): Promise<UserEntity> {
   const user = Object.assign(new UserEntity(), {
     id: 42,
     name: 'Alice',
@@ -64,6 +67,9 @@ async function makeRealUser(plainPassword: string): Promise<UserEntity> {
     birthDate: '1990-01-01',
     createdAt: new Date('2026-01-01T00:00:00Z'),
     passwordHash: await argon2.hash(plainPassword, { type: argon2.argon2id }),
+    suspendedAt: null,
+    suspendedReason: null,
+    ...overrides,
   });
   return user;
 }
@@ -176,6 +182,21 @@ describe('AuthService.login', () => {
     await expect(service.login(dto, CTX)).rejects.toMatchObject({
       errorCode: BetNextErrorCode.INVALID_CREDENTIALS,
       status: HttpStatus.UNAUTHORIZED,
+    });
+    expect(tokens.issueSession).not.toHaveBeenCalled();
+  });
+
+  // T8.3 — DoD : un user suspendu ne peut plus se connecter.
+  it('refuse la connexion si suspendu par un admin (ACCOUNT_SUSPENDED, 403)', async () => {
+    repo.findOne.mockResolvedValueOnce(
+      await makeRealUser('StrongPassw0rd!', {
+        suspendedAt: new Date('2026-06-17T00:00:00Z'),
+        suspendedReason: 'Triche détectée',
+      }),
+    );
+    await expect(service.login(dto, CTX)).rejects.toMatchObject({
+      errorCode: BetNextErrorCode.ACCOUNT_SUSPENDED,
+      status: HttpStatus.FORBIDDEN,
     });
     expect(tokens.issueSession).not.toHaveBeenCalled();
   });

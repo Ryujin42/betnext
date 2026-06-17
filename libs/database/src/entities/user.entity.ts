@@ -39,6 +39,13 @@ export class UserEntity {
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt!: Date;
 
+  /** Suspension admin (T8.3). Non NULL ⇒ compte bloqué (connexion refusée). */
+  @Column({ name: 'suspended_at', type: 'timestamptz', nullable: true })
+  suspendedAt!: Date | null;
+
+  @Column({ name: 'suspended_reason', type: 'varchar', length: 255, nullable: true })
+  suspendedReason!: string | null;
+
   @OneToMany(() => SessionEntity, (session) => session.user)
   sessions!: SessionEntity[];
 
@@ -51,6 +58,15 @@ export class UserEntity {
       role: this.role,
       birthDate: this.birthDate,
       createdAt: this.createdAt.toISOString(),
+    };
+  }
+
+  /** Projection admin (T8.3) — ajoute le statut de suspension. */
+  toAdminView(): IUser & { suspendedAt: string | null; suspendedReason: string | null } {
+    return {
+      ...this.toPublic(),
+      suspendedAt: this.suspendedAt?.toISOString() ?? null,
+      suspendedReason: this.suspendedReason,
     };
   }
 }
