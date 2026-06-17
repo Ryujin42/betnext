@@ -7,6 +7,7 @@ import { AuthService } from './auth.service';
 import type { LoginDto } from './dto/login.dto';
 import type { RegisterDto } from './dto/register.dto';
 import type { SessionContext, TokensService } from './tokens.service';
+import type { RgProfilesService } from '../rg/rg-profiles.service';
 
 const CTX: SessionContext = { ip: '127.0.0.1', userAgent: 'jest', device: null };
 
@@ -24,6 +25,16 @@ function makeUserRepo(): jest.Mocked<Repository<UserEntity>> {
       Object.assign(entity, { id: 42, createdAt: new Date('2026-01-01T00:00:00Z') }),
     ),
   } as unknown as jest.Mocked<Repository<UserEntity>>;
+}
+
+function makeRg(): jest.Mocked<RgProfilesService> {
+  return {
+    isSelfExcluded: jest.fn().mockResolvedValue({ excluded: false, until: null }),
+    getProfile: jest.fn(),
+    getOrCreateForUser: jest.fn(),
+    updateLimits: jest.fn(),
+    selfExclude: jest.fn(),
+  } as unknown as jest.Mocked<RgProfilesService>;
 }
 
 function makeTokens(): jest.Mocked<TokensService> {
@@ -71,12 +82,14 @@ function baseRegisterDto(overrides: Partial<RegisterDto> = {}): RegisterDto {
 describe('AuthService.register', () => {
   let repo: jest.Mocked<Repository<UserEntity>>;
   let tokens: jest.Mocked<TokensService>;
+  let rg: jest.Mocked<RgProfilesService>;
   let service: AuthService;
 
   beforeEach(() => {
     repo = makeUserRepo();
     tokens = makeTokens();
-    service = new AuthService(repo, tokens);
+    rg = makeRg();
+    service = new AuthService(repo, tokens, rg);
   });
 
   it('refuse les < 18 ans avec UNDERAGE (403) et ne touche pas la base', async () => {
@@ -119,12 +132,14 @@ describe('AuthService.register', () => {
 describe('AuthService.login', () => {
   let repo: jest.Mocked<Repository<UserEntity>>;
   let tokens: jest.Mocked<TokensService>;
+  let rg: jest.Mocked<RgProfilesService>;
   let service: AuthService;
 
   beforeEach(() => {
     repo = makeUserRepo();
     tokens = makeTokens();
-    service = new AuthService(repo, tokens);
+    rg = makeRg();
+    service = new AuthService(repo, tokens, rg);
   });
 
   const dto: LoginDto = { email: 'alice@betnext.gg', password: 'StrongPassw0rd!' };
@@ -164,17 +179,31 @@ describe('AuthService.login', () => {
     });
     expect(tokens.issueSession).not.toHaveBeenCalled();
   });
+
+  // T7.2 — DoD : un user auto-exclu ne peut plus se connecter.
+  it('refuse la connexion si auto-exclu (ACCOUNT_SELF_EXCLUDED, 403)', async () => {
+    const futureDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    repo.findOne.mockResolvedValueOnce(await makeRealUser('StrongPassw0rd!'));
+    rg.isSelfExcluded.mockResolvedValueOnce({ excluded: true, until: futureDate });
+    await expect(service.login(dto, CTX)).rejects.toMatchObject({
+      errorCode: BetNextErrorCode.ACCOUNT_SELF_EXCLUDED,
+      status: HttpStatus.FORBIDDEN,
+    });
+    expect(tokens.issueSession).not.toHaveBeenCalled();
+  });
 });
 
 describe('AuthService.refresh (rotation + détection de réutilisation)', () => {
   let repo: jest.Mocked<Repository<UserEntity>>;
   let tokens: jest.Mocked<TokensService>;
+  let rg: jest.Mocked<RgProfilesService>;
   let service: AuthService;
 
   beforeEach(() => {
     repo = makeUserRepo();
     tokens = makeTokens();
-    service = new AuthService(repo, tokens);
+    rg = makeRg();
+    service = new AuthService(repo, tokens, rg);
   });
 
   function activeSession(): SessionEntity {

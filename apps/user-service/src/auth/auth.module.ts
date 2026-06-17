@@ -6,6 +6,7 @@ import { SessionEntity, UserEntity } from '@betnext/database';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { TokensService } from './tokens.service';
+import { RgProfilesModule } from '../rg/rg-profiles.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { TokensService } from './tokens.service';
         },
       }),
     }),
+    RgProfilesModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, TokensService],

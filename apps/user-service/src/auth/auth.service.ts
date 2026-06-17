@@ -9,6 +9,7 @@ import { UserEntity } from '@betnext/database';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { SessionContext, TokensService } from './tokens.service';
+import { RgProfilesService } from '../rg/rg-profiles.service';
 
 /**
  * Service d'authentification — Lot 2 (T2.2 register, T2.3 login/refresh).
@@ -29,6 +30,7 @@ export class AuthService {
     @InjectRepository(UserEntity)
     private readonly users: Repository<UserEntity>,
     private readonly tokens: TokensService,
+    private readonly rg: RgProfilesService,
   ) {}
 
   /** T2.2 — Inscription ARJEL. */
@@ -83,6 +85,21 @@ export class AuthService {
     const passwordOk = await argon2.verify(user.passwordHash, dto.password);
     if (!passwordOk) {
       throw AuthService.invalidCredentials();
+    }
+
+    // T7.2 — auto-exclusion : la connexion est refusée tant que la date de
+    // fin n'est pas atteinte, indépendamment des identifiants valides. On
+    // **vérifie après** le mot de passe pour ne pas révéler l'existence du
+    // compte aux scanners (réponse INVALID_CREDENTIALS générique sinon
+    // privilégiée).
+    const selfExclusion = await this.rg.isSelfExcluded(user.id);
+    if (selfExclusion.excluded) {
+      throw new BetNextException(
+        BetNextErrorCode.ACCOUNT_SELF_EXCLUDED,
+        HttpStatus.FORBIDDEN,
+        `Compte auto-exclu jusqu'au ${selfExclusion.until?.toISOString() ?? ''}.`,
+        { selfExcludedUntil: selfExclusion.until?.toISOString() ?? null },
+      );
     }
 
     return this.issueTokens(user, undefined, ctx);

@@ -427,6 +427,9 @@ importers:
       '@betnext/database':
         specifier: workspace:*
         version: link:../../libs/database
+      '@betnext/shared-events':
+        specifier: workspace:*
+        version: link:../../libs/shared-events
       '@betnext/shared-types':
         specifier: workspace:*
         version: link:../../libs/shared-types

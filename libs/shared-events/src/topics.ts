@@ -18,6 +18,10 @@ export const BetNextTopic = {
   PaymentDeposited: 'payment.deposited',
   /** Émis par wallet-service après un retrait débité (T6.3). */
   PaymentWithdrawn: 'payment.withdrawn',
+  /** Émis par user-service après modification des limites RG (T7.2). */
+  RgLimitUpdated: 'rg.limit_updated',
+  /** Émis par user-service quand un utilisateur s'auto-exclut (T7.2). */
+  RgSelfExcluded: 'rg.self_excluded',
 } as const;
 
 export type BetNextTopic = (typeof BetNextTopic)[keyof typeof BetNextTopic];

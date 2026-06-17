@@ -1,6 +1,7 @@
 // Domaine users
 export * from './entities/user.entity';
 export * from './entities/session.entity';
+export * from './entities/rg-profile.entity';
 // Domaine events
 export * from './entities/game.entity';
 export * from './entities/tournament.entity';
