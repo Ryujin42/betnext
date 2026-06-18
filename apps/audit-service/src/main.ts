@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { FastifyAdapter } from '@nestjs/platform-fastify';
 import { AppModule } from './app.module';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { BetNextLoggerService } from '@betnext/observability';
 
 /**
@@ -18,6 +19,19 @@ async function bootstrap(): Promise<void> {
   app.useLogger(new BetNextLoggerService('audit-service'));
   const config = app.get(ConfigService);
   const port = Number(config.get<string>('AUDIT_SERVICE_PORT') ?? 3007);
+  // T12.4 — documentation OpenAPI/Swagger (dev) : /docs (UI) et /docs-json.
+  if (process.env.NODE_ENV !== 'production') {
+    const openApi = SwaggerModule.createDocument(
+      app,
+      new DocumentBuilder()
+        .setTitle('BetNext — Audit Service')
+        .setVersion('1.0.0')
+        .addBearerAuth()
+        .build(),
+    );
+    SwaggerModule.setup('docs', app, openApi);
+  }
+
   await app.listen({ port, host: '0.0.0.0' });
 }
 

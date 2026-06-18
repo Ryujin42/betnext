@@ -5,6 +5,7 @@ import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fa
 import { IoAdapter } from '@nestjs/platform-socket.io';
 import helmet from '@fastify/helmet';
 import { AppModule } from './app.module';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { BetNextLoggerService } from '@betnext/observability';
 import { registerBullBoard } from './bullboard/bullboard';
 import { RedisIoAdapter } from './realtime/redis-io.adapter';
@@ -36,6 +37,19 @@ async function bootstrap(): Promise<void> {
   await registerBullBoard(app);
 
   const port = Number(config.get<string>('PORT') ?? 3000);
+  // T12.4 — documentation OpenAPI/Swagger (dev) : /docs (UI) et /docs-json.
+  if (process.env.NODE_ENV !== 'production') {
+    const openApi = SwaggerModule.createDocument(
+      app,
+      new DocumentBuilder()
+        .setTitle('BetNext — API Gateway')
+        .setVersion('1.0.0')
+        .addBearerAuth()
+        .build(),
+    );
+    SwaggerModule.setup('docs', app, openApi);
+  }
+
   await app.listen({ port, host: '0.0.0.0' });
 }
 
