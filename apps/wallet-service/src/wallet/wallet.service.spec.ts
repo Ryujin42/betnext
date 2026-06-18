@@ -58,6 +58,7 @@ function setup(initialBalance = 100) {
     transaction: jest.fn(async (cb: (m: typeof manager) => unknown) => cb(manager)),
   };
   const depositLimits = { assertCanDeposit: jest.fn().mockResolvedValue(undefined) };
+  const accountStatus = { assertCanAct: jest.fn().mockResolvedValue(undefined) };
   const bus = { publish: jest.fn(), subscribe: jest.fn() };
   const payment = new MockStripeProvider();
 
@@ -70,11 +71,13 @@ function setup(initialBalance = 100) {
     dataSource as any,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     depositLimits as any,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    accountStatus as any,
     payment,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     bus as any,
   );
-  return { service, balanceStore, txStore, bus, depositLimits };
+  return { service, balanceStore, txStore, bus, depositLimits, accountStatus };
 }
 
 describe('WalletService (Lot 6)', () => {
@@ -137,33 +140,26 @@ describe('WalletService (Lot 6)', () => {
     expect(balanceStore.get(3)?.amount).toBe('100.00');
   });
 
-  /*
-   * T6.1 — consommateurs `bet.placed` / `bet.won`. Inactifs au Lot 6 (bus
-   * in-memory mono-processus, le betting-service reste l'auteur du débit
-   * synchrone), mais déjà couverts ici pour le passage au bus Redis du Lot 7.
-   */
-  it('debitForBet : débite le solde et trace une transaction BET (idempotente)', async () => {
-    const { service, balanceStore, txStore } = setup(100);
-    await service.debitForBet(42, 3, 30);
-    await service.debitForBet(42, 3, 30); // rejeu : référence bet:42:placed déjà tracée
-    expect(balanceStore.get(3)?.amount).toBe('70.00');
-    expect(txStore.filter((t) => t.stripeId === 'bet:42:placed')).toHaveLength(1);
-    expect(txStore.filter((t) => t.type === TransactionType.BET)).toHaveLength(1);
+  it('dépôt refusé si compte suspendu (AUTH_003)', async () => {
+    const { service, balanceStore, accountStatus, depositLimits } = setup(100);
+    accountStatus.assertCanAct.mockRejectedValue(
+      new BetNextException(BetNextErrorCode.ACCOUNT_SUSPENDED, 403, 'suspendu'),
+    );
+    await expect(service.deposit(3, 50)).rejects.toMatchObject({
+      errorCode: BetNextErrorCode.ACCOUNT_SUSPENDED,
+    });
+    expect(depositLimits.assertCanDeposit).not.toHaveBeenCalled();
+    expect(balanceStore.get(3)?.amount).toBe('100.00');
   });
 
-  it('debitForBet : solde insuffisant → ne débite pas et ne trace rien', async () => {
-    const { service, balanceStore, txStore } = setup(10);
-    await service.debitForBet(99, 3, 50);
-    expect(balanceStore.get(3)?.amount).toBe('10.00');
-    expect(txStore.filter((t) => t.stripeId === 'bet:99:placed')).toHaveLength(0);
-  });
-
-  it('creditForWin : crédite le solde et trace une transaction WIN (idempotente)', async () => {
-    const { service, balanceStore, txStore } = setup(100);
-    await service.creditForWin(7, 3, 80);
-    await service.creditForWin(7, 3, 80); // rejeu : référence bet:7:won déjà tracée
-    expect(balanceStore.get(3)?.amount).toBe('180.00');
-    expect(txStore.filter((t) => t.stripeId === 'bet:7:won')).toHaveLength(1);
-    expect(txStore.filter((t) => t.type === TransactionType.WIN)).toHaveLength(1);
+  it('retrait refusé si compte auto-exclu (AUTH_004)', async () => {
+    const { service, balanceStore, accountStatus } = setup(100);
+    accountStatus.assertCanAct.mockRejectedValue(
+      new BetNextException(BetNextErrorCode.ACCOUNT_SELF_EXCLUDED, 403, 'auto-exclu'),
+    );
+    await expect(service.withdraw(3, 20)).rejects.toMatchObject({
+      errorCode: BetNextErrorCode.ACCOUNT_SELF_EXCLUDED,
+    });
+    expect(balanceStore.get(3)?.amount).toBe('100.00');
   });
 });

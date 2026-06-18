@@ -9,6 +9,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { Role, type IEvent, type IOutcome } from '@betnext/shared-types';
@@ -29,9 +30,15 @@ import { RelayService } from '../proxy/relay.service';
 export class EventsController {
   constructor(private readonly relay: RelayService) {}
 
+  /**
+   * Joueurs : seulement les évènements PUBLIE.
+   * Manager/Admin : tous les statuts (BROUILLON inclus) en passant `?all=true`.
+   */
   @Get()
-  list(@CurrentUser() user: AuthenticatedUser): Promise<IEvent[]> {
-    return this.relay.forwardToEventService('GET', '/events', { user });
+  list(@CurrentUser() user: AuthenticatedUser, @Query('all') all?: string): Promise<IEvent[]> {
+    const canSeeAll = (user.role === Role.MANAGER || user.role === Role.ADMIN) && all === 'true';
+    const path = canSeeAll ? '/events?all=true' : '/events';
+    return this.relay.forwardToEventService('GET', path, { user });
   }
 
   @Get(':id')
@@ -123,7 +130,7 @@ export class EventsController {
     return this.relay.forwardToEventService('POST', `/events/${id}/result`, { user, body });
   }
 
-  /** T8.4 — import : récupère les events live d'un adaptateur (mocké) pour copier-coller. */
+  /** T8.4 — prévisualisation : liste les events de l'adaptateur sans rien persister. */
   @Get('import/:type')
   @Roles(Role.MANAGER)
   importLive(
@@ -131,5 +138,30 @@ export class EventsController {
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<unknown[]> {
     return this.relay.forwardToEventService('GET', `/adapters/${type}/live`, { user });
+  }
+
+  /** T8.4 — ingestion : crée en BROUILLON les events retournés par l'adaptateur (idempotent). */
+  @Post('import/:type')
+  @Roles(Role.MANAGER)
+  importPersist(
+    @Param('type') type: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<unknown> {
+    return this.relay.forwardToEventService('POST', `/events/import/${type}`, { user });
+  }
+
+  /** T8.4 — ingestion d'un seul match (clic sur une ligne dans l'UI). */
+  @Post('import/:type/:externalId')
+  @Roles(Role.MANAGER)
+  importPersistOne(
+    @Param('type') type: string,
+    @Param('externalId') externalId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<unknown> {
+    return this.relay.forwardToEventService(
+      'POST',
+      `/events/import/${type}/${encodeURIComponent(externalId)}`,
+      { user },
+    );
   }
 }

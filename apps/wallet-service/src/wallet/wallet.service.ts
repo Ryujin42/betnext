@@ -12,6 +12,7 @@ import { BalanceEntity, TransactionEntity } from '@betnext/database';
 import { addCents, fromCents, subtractCents, toCents } from '@betnext/shared-utils';
 import { BetNextTopic, EVENT_BUS, IEventBus, PaymentMovementEvent } from '@betnext/shared-events';
 import { BetNextException } from '../common/betnext.exception';
+import { AccountStatusService } from '../account-status/account-status.service';
 import { DepositLimitsService } from './deposit-limits.service';
 import {
   IPaymentProvider,
@@ -47,6 +48,7 @@ export class WalletService {
     private readonly transactions: Repository<TransactionEntity>,
     private readonly dataSource: DataSource,
     private readonly depositLimits: DepositLimitsService,
+    private readonly accountStatus: AccountStatusService,
     @Inject(PAYMENT_PROVIDER) private readonly payment: IPaymentProvider,
     @Inject(EVENT_BUS) private readonly bus: IEventBus,
   ) {}
@@ -70,6 +72,7 @@ export class WalletService {
 
   /** T6.3 — dépôt : limites RG → PaymentIntent (mock) → crédit sur webhook. */
   async deposit(userId: number, amount: number): Promise<DepositResult> {
+    await this.accountStatus.assertCanAct(userId);
     await this.depositLimits.assertCanDeposit(userId, amount);
     const intent = await this.payment.createPaymentIntent({ amount, userId });
     const event = await this.payment.confirmPayment(intent.id);
@@ -121,6 +124,7 @@ export class WalletService {
 
   /** T6.3 — retrait : vérifie le solde, transaction PENDING → COMPLETED, débit. */
   async withdraw(userId: number, amount: number): Promise<WithdrawResult> {
+    await this.accountStatus.assertCanAct(userId);
     const result = await this.dataSource.transaction(async (manager) => {
       const balanceRepo = manager.getRepository(BalanceEntity);
       const txRepo = manager.getRepository(TransactionEntity);
@@ -163,58 +167,6 @@ export class WalletService {
 
     await this.publishMovement(BetNextTopic.PaymentWithdrawn, userId, amount, result.transactionId);
     return result;
-  }
-
-  /**
-   * Débit lié à un pari (consommateur `bet.placed`). Idempotent via la référence
-   * `bet:<id>:placed`. INACTIF au Lot 6 (bus mono-processus) — voir
-   * {@link BetEventsSubscriber}.
-   */
-  async debitForBet(betId: number, userId: number, amount: number): Promise<void> {
-    const ref = `bet:${betId}:placed`;
-    await this.dataSource.transaction(async (manager) => {
-      const txRepo = manager.getRepository(TransactionEntity);
-      if (await txRepo.findOne({ where: { stripeId: ref } })) {
-        return;
-      }
-      const balanceRepo = manager.getRepository(BalanceEntity);
-      const balance = await balanceRepo.findOne({
-        where: { userId },
-        lock: { mode: 'pessimistic_write' },
-      });
-      const currentCents = balance ? toCents(Number(balance.amount)) : 0;
-      if (toCents(amount) > currentCents) {
-        this.logger.error(`Débit pari #${betId} impossible : solde insuffisant (user ${userId}).`);
-        return;
-      }
-      if (balance) {
-        balance.amount = fromCents(subtractCents(currentCents, toCents(amount))).toFixed(2);
-        await balanceRepo.save(balance);
-      }
-      await this.record(manager, userId, amount, TransactionType.BET, `Mise pari #${betId}`, ref);
-    });
-  }
-
-  /**
-   * Crédit lié à un gain (consommateur `bet.won`). Idempotent via `bet:<id>:won`.
-   * INACTIF au Lot 6 — voir {@link BetEventsSubscriber}.
-   */
-  async creditForWin(betId: number, userId: number, payout: number): Promise<void> {
-    const ref = `bet:${betId}:won`;
-    await this.dataSource.transaction(async (manager) => {
-      const txRepo = manager.getRepository(TransactionEntity);
-      if (await txRepo.findOne({ where: { stripeId: ref } })) {
-        return;
-      }
-      await this.creditWithin(
-        manager,
-        userId,
-        payout,
-        TransactionType.WIN,
-        `Gain pari #${betId}`,
-        ref,
-      );
-    });
   }
 
   /** Crédite le solde dans la transaction donnée et trace la ligne. Renvoie l'id de transaction. */

@@ -50,7 +50,11 @@ export function createApiClient(tokenStore: TokenStore): ApiFn {
         });
         if (!res.ok) return null;
         const data = (await res.json()) as { accessToken: string; refreshToken: string };
+        // Rotation : on stocke AUSSI le nouveau refresh, sinon le prochain
+        // appel utilisera l'ancien (déjà révoqué) → révocation de toute la
+        // family_id côté user-service → déconnexion forcée.
         tokenStore.setAccess(data.accessToken);
+        tokenStore.setRefresh(data.refreshToken);
         return data;
       } catch {
         return null;

@@ -6,6 +6,8 @@
 export const BetNextQueue = {
   /** Résolution d'un événement : producteur betting-service, déclenché par `event.result_set`. */
   BetResolution: 'bet-resolution',
+  /** Annulation des paris suite à annulation d'événement : producteur betting-service, déclenché par `event.cancelled`. */
+  BetCancellation: 'bet-cancellation',
   /** Crédit de dépôt depuis un webhook PSP : producteur wallet-service, idempotent sur `stripe_id`. */
   PaymentWebhook: 'payment-webhook',
   /** Notifications utilisateur (mail/push) : non bloquant, DLQ après épuisement. */
@@ -16,6 +18,11 @@ export type BetNextQueue = (typeof BetNextQueue)[keyof typeof BetNextQueue];
 
 /** Charge utile du job `bet-resolution`. */
 export interface BetResolutionJob {
+  eSportEventId: number;
+}
+
+/** Charge utile du job `bet-cancellation`. */
+export interface BetCancellationJob {
   eSportEventId: number;
 }
 

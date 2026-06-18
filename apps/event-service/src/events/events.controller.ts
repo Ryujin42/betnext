@@ -9,6 +9,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { EventStatus, type IEvent, type IOutcome } from '@betnext/shared-types';
@@ -17,6 +18,7 @@ import { ManagerGuard } from '../common/manager.guard';
 import { EventsService } from './events.service';
 import { OutcomesService } from './outcomes.service';
 import { ResolutionService } from './resolution.service';
+import { EventIngestionService, type IngestionSummary } from './event-ingestion.service';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { CreateOutcomeDto } from './dto/create-outcome.dto';
@@ -35,11 +37,12 @@ export class EventsController {
     private readonly events: EventsService,
     private readonly outcomes: OutcomesService,
     private readonly resolution: ResolutionService,
+    private readonly ingestion: EventIngestionService,
   ) {}
 
   @Get()
-  async list(): Promise<IEvent[]> {
-    const events = await this.events.listPublished();
+  async list(@Query('all') all?: string): Promise<IEvent[]> {
+    const events = all === 'true' ? await this.events.listAll() : await this.events.listPublished();
     return events.map((event) => event.toPublic());
   }
 
@@ -118,5 +121,26 @@ export class EventsController {
   ): Promise<IEvent> {
     const event = await this.resolution.setResult(id, dto);
     return event.toPublic();
+  }
+
+  /**
+   * T8.4 — ingestion : interroge l'adapter `type` (`lol` etc.) puis crée en
+   * BROUILLON les évènements pas encore présents (idempotent). Réservé manager.
+   */
+  @Post('import/:type')
+  @UseGuards(ManagerGuard)
+  async importFromAdapter(@Param('type') type: string): Promise<IngestionSummary> {
+    return this.ingestion.ingestAll(type);
+  }
+
+  /** T8.4 — ingestion d'un seul match identifié par son `externalId`. */
+  @Post('import/:type/:externalId')
+  @UseGuards(ManagerGuard)
+  async importOneFromAdapter(
+    @Param('type') type: string,
+    @Param('externalId') externalId: string,
+  ): Promise<{ created: boolean; id: number | null }> {
+    const id = await this.ingestion.ingestByExternalId(type, externalId);
+    return { created: id !== null, id };
   }
 }

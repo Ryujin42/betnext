@@ -10,6 +10,11 @@ export const BetNextTopic = {
   OddsUpdated: 'odds.updated',
   /** Émis par event-service quand un résultat est saisi (T4.4 → consommé T5.3). */
   EventResultSet: 'event.result_set',
+  /**
+   * Émis par event-service quand un manager annule un événement (BROUILLON/PUBLIE → ANNULE).
+   * Consommé par betting-service pour annuler les paris PENDING et rembourser les joueurs.
+   */
+  EventCancelled: 'event.cancelled',
   /** Émis par betting-service à la résolution d'un pari gagnant (T5.3). */
   BetWon: 'bet.won',
   /** Émis par betting-service à la résolution d'un pari perdant (T5.3). */

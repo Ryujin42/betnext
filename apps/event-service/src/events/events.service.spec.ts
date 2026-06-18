@@ -2,6 +2,7 @@ import { Test } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { EventStatus } from '@betnext/shared-types';
 import { EsportEventEntity, EventTeamEntity } from '@betnext/database';
+import { BetNextTopic, EVENT_BUS, type IEventBus } from '@betnext/shared-events';
 import { EventsService } from './events.service';
 import { BetNextException } from '../common/betnext.exception';
 
@@ -29,15 +30,18 @@ describe('EventsService (cycle de vie T4.2)', () => {
   let service: EventsService;
   let events: RepoMock;
   let eventTeams: RepoMock;
+  let bus: { publish: jest.Mock; subscribe: jest.Mock };
 
   beforeEach(async () => {
     events = repoMock();
     eventTeams = repoMock();
+    bus = { publish: jest.fn(() => Promise.resolve()), subscribe: jest.fn() };
     const moduleRef = await Test.createTestingModule({
       providers: [
         EventsService,
         { provide: getRepositoryToken(EsportEventEntity), useValue: events },
         { provide: getRepositoryToken(EventTeamEntity), useValue: eventTeams },
+        { provide: EVENT_BUS, useValue: bus as unknown as IEventBus },
       ],
     }).compile();
     service = moduleRef.get(EventsService);
@@ -74,6 +78,22 @@ describe('EventsService (cycle de vie T4.2)', () => {
     events.findOne.mockResolvedValue(event);
     await service.remove(1);
     expect(events.remove).toHaveBeenCalledWith(event);
+  });
+
+  it("publie event.cancelled lors d'une annulation (PUBLIE → ANNULE)", async () => {
+    events.findOne.mockResolvedValue({ id: 42, status: EventStatus.PUBLIE });
+    const updated = await service.transition(42, EventStatus.ANNULE);
+    expect(updated.status).toBe(EventStatus.ANNULE);
+    expect(bus.publish).toHaveBeenCalledWith(
+      BetNextTopic.EventCancelled,
+      expect.objectContaining({ eSportEventId: 42 }),
+    );
+  });
+
+  it("ne publie pas event.cancelled lors d'une transition non-annulante", async () => {
+    events.findOne.mockResolvedValue({ id: 1, status: EventStatus.BROUILLON });
+    await service.transition(1, EventStatus.PUBLIE);
+    expect(bus.publish).not.toHaveBeenCalled();
   });
 
   it('refuse une transition illégale (BROUILLON → TERMINE)', async () => {

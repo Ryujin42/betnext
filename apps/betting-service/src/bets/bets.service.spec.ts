@@ -34,6 +34,7 @@ function setup() {
   const rg = { assertCanBet: jest.fn().mockResolvedValue(undefined) };
   const bus = { publish: jest.fn(), subscribe: jest.fn() };
   const notifier = { notifyBetPlaced: jest.fn().mockResolvedValue(undefined) };
+  const accountStatus = { assertCanAct: jest.fn().mockResolvedValue(undefined) };
 
   const service = new BetsService(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -52,8 +53,10 @@ function setup() {
     bus as any,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     notifier as any,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    accountStatus as any,
   );
-  return { service, outcomes, events, betRepo, wallet, rg, bus, notifier };
+  return { service, outcomes, events, betRepo, wallet, rg, bus, notifier, accountStatus };
 }
 
 describe('BetsService.placeBet (T5.1)', () => {
@@ -89,6 +92,29 @@ describe('BetsService.placeBet (T5.1)', () => {
         lockedOdds: 2,
       }),
     );
+  });
+
+  it('refuse si le compte est suspendu (token encore valide → AUTH_003)', async () => {
+    const { service, outcomes, accountStatus, wallet } = setup();
+    accountStatus.assertCanAct.mockRejectedValue(
+      new BetNextException(BetNextErrorCode.ACCOUNT_SUSPENDED, 403, 'suspendu'),
+    );
+    await expect(service.placeBet(5, { outcomeId: 7, amount: 10 })).rejects.toMatchObject({
+      errorCode: BetNextErrorCode.ACCOUNT_SUSPENDED,
+    });
+    expect(outcomes.findOne).not.toHaveBeenCalled();
+    expect(wallet.debit).not.toHaveBeenCalled();
+  });
+
+  it('refuse si le compte est auto-exclu (AUTH_004)', async () => {
+    const { service, accountStatus, wallet } = setup();
+    accountStatus.assertCanAct.mockRejectedValue(
+      new BetNextException(BetNextErrorCode.ACCOUNT_SELF_EXCLUDED, 403, 'auto-exclu'),
+    );
+    await expect(service.placeBet(5, { outcomeId: 7, amount: 10 })).rejects.toMatchObject({
+      errorCode: BetNextErrorCode.ACCOUNT_SELF_EXCLUDED,
+    });
+    expect(wallet.debit).not.toHaveBeenCalled();
   });
 
   it('refuse si l’issue est introuvable (NOT_FOUND)', async () => {

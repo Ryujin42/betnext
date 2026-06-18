@@ -13,6 +13,7 @@ import {
   IResponsibleGaming,
   RESPONSIBLE_GAMING,
 } from '../responsible-gaming/responsible-gaming.interface';
+import { AccountStatusService } from '../account-status/account-status.service';
 import { BetNotifier } from './bet-notifier';
 
 /**
@@ -38,9 +39,12 @@ export class BetsService {
     @Inject(EVENT_BUS) private readonly bus: IEventBus,
     private readonly notifier: BetNotifier,
     @Optional() private readonly metrics?: BetNextMetrics,
+    private readonly accountStatus: AccountStatusService,
   ) {}
 
   async placeBet(userId: number, dto: PlaceBetDto): Promise<IBet> {
+    await this.accountStatus.assertCanAct(userId);
+
     const outcome = await this.outcomes.findOne({ where: { id: dto.outcomeId } });
     if (!outcome) {
       throw new BetNextException(
