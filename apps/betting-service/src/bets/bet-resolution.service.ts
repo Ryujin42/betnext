@@ -1,10 +1,11 @@
-import { HttpStatus, Inject, Injectable, Logger } from '@nestjs/common';
+import { HttpStatus, Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, Repository } from 'typeorm';
 import { BetNextErrorCode, BetStatus, EventStatus, TransactionType } from '@betnext/shared-types';
 import { BetEntity, BetHistoryEntity, EsportEventEntity, OutcomeEntity } from '@betnext/database';
 import { applyOdds, fromCents, toCents } from '@betnext/shared-utils';
 import { BetNextTopic, BetResolvedEvent, EVENT_BUS, IEventBus } from '@betnext/shared-events';
+import { BetNextMetrics } from '@betnext/observability';
 import { BetNextException } from '../common/betnext.exception';
 import { IWalletService, WALLET_SERVICE } from '../wallet/wallet.interface';
 
@@ -39,6 +40,7 @@ export class BetResolutionService {
     private readonly dataSource: DataSource,
     @Inject(WALLET_SERVICE) private readonly wallet: IWalletService,
     @Inject(EVENT_BUS) private readonly bus: IEventBus,
+    @Optional() private readonly metrics?: BetNextMetrics,
   ) {}
 
   async resolveForEvent(eSportEventId: number): Promise<ResolutionSummary> {
@@ -125,6 +127,10 @@ export class BetResolutionService {
       const topic = event.status === BetStatus.WON ? BetNextTopic.BetWon : BetNextTopic.BetLost;
       await this.bus.publish<BetResolvedEvent>(topic, event);
     }
+
+    // T11.2 — monitoring : volume de paris résolus par statut.
+    if (summary.won > 0) this.metrics?.recordBetResolved('won', summary.won);
+    if (summary.lost > 0) this.metrics?.recordBetResolved('lost', summary.lost);
 
     this.logger.log(
       `Résolution événement ${eSportEventId} : ${summary.won} gagnés / ${summary.lost} perdus.`,

@@ -15,5 +15,7 @@ export * from './entities/bet-history.entity';
 // Domaine wallet
 export * from './entities/transaction.entity';
 export * from './entities/balance.entity';
+// Audit ARJEL (append-only)
+export * from './entities/audit-log.entity';
 // Config TypeORM partagée
 export * from './database.config';

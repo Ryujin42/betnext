@@ -1,0 +1,28 @@
+# Prometheus — scraping des métriques BetNext (Lot 11 — T11.2).
+#
+# Les services applicatifs tournent sur l'hôte (`pnpm dev`), Prometheus dans
+# Docker : on les atteint via `host.docker.internal` (cf. extra_hosts du
+# service prometheus dans docker-compose.yml). Chaque service expose /metrics
+# (prom-client) avec un label `service`.
+global:
+  scrape_interval: 5s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: betnext-services
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - host.docker.internal:3000 # api-gateway
+          - host.docker.internal:3001 # user-service
+          - host.docker.internal:3002 # event-service
+          - host.docker.internal:3003 # betting-service
+          - host.docker.internal:3004 # odds-engine
+          - host.docker.internal:3005 # wallet-service
+          - host.docker.internal:3006 # notification-service
+          - host.docker.internal:3007 # audit-service
+
+  - job_name: prometheus
+    static_configs:
+      - targets:
+          - localhost:9090

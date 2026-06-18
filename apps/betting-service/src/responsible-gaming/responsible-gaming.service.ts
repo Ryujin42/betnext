@@ -1,10 +1,11 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { MoreThanOrEqual, Not, Repository } from 'typeorm';
 import { BetNextErrorCode, BetStatus } from '@betnext/shared-types';
 import { BetEntity, RgProfileEntity } from '@betnext/database';
 import { addCents, toCents } from '@betnext/shared-utils';
+import { BetNextMetrics } from '@betnext/observability';
 import { BetNextException } from '../common/betnext.exception';
 import { IResponsibleGaming } from './responsible-gaming.interface';
 
@@ -32,6 +33,7 @@ export class BasicResponsibleGamingService implements IResponsibleGaming {
     @InjectRepository(RgProfileEntity)
     private readonly rgProfiles: Repository<RgProfileEntity>,
     config: ConfigService,
+    @Optional() private readonly metrics?: BetNextMetrics,
   ) {
     this.platformDailyLimit = Number(
       config.get<string>('RG_DAILY_BET_LIMIT') ?? DEFAULT_DAILY_BET_LIMIT,
@@ -49,6 +51,7 @@ export class BasicResponsibleGamingService implements IResponsibleGaming {
     startOfDay.setHours(0, 0, 0, 0);
     const dailyTotal = await this.stakedSince(userId, startOfDay);
     if (this.exceeds(dailyTotal, stake, limits.daily)) {
+      this.metrics?.recordRgLimitHit('daily_bet');
       throw new BetNextException(
         BetNextErrorCode.DAILY_LIMIT_REACHED,
         HttpStatus.UNPROCESSABLE_ENTITY,
@@ -60,6 +63,7 @@ export class BasicResponsibleGamingService implements IResponsibleGaming {
     const startOfWeek = new Date(now.getTime() - 7 * 24 * 3_600_000);
     const weeklyTotal = await this.stakedSince(userId, startOfWeek);
     if (this.exceeds(weeklyTotal, stake, limits.weekly)) {
+      this.metrics?.recordRgLimitHit('weekly_bet');
       throw new BetNextException(
         BetNextErrorCode.WEEKLY_LIMIT_REACHED,
         HttpStatus.UNPROCESSABLE_ENTITY,

@@ -57,7 +57,9 @@ export default tseslint.config(
       'apps/odds-engine/**/*.ts',
       'apps/wallet-service/**/*.ts',
       'apps/notification/**/*.ts',
+      'apps/audit-service/**/*.ts',
       'libs/odds/**/*.ts',
+      'libs/observability/**/*.ts',
     ],
     rules: {
       '@typescript-eslint/consistent-type-imports': 'off',

@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { MetricsModule } from '@betnext/observability';
 import { APP_FILTER } from '@nestjs/core';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { MessagingModule } from '@betnext/shared-events';
@@ -15,6 +16,7 @@ import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
+    MetricsModule.forRoot({ service: 'user-service' }),
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: ['.env', '../../.env'],

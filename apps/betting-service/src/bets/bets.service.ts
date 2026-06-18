@@ -1,10 +1,11 @@
-import { HttpStatus, Inject, Injectable } from '@nestjs/common';
+import { HttpStatus, Inject, Injectable, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { BetNextErrorCode, BetStatus, EventStatus, IBet, IBetView } from '@betnext/shared-types';
 import { BetEntity, BetHistoryEntity, EsportEventEntity, OutcomeEntity } from '@betnext/database';
 import { applyOdds, fromCents, isPast, toCents } from '@betnext/shared-utils';
 import { BetNextTopic, BetPlacedEvent, EVENT_BUS, IEventBus } from '@betnext/shared-events';
+import { BetNextMetrics } from '@betnext/observability';
 import { BetNextException } from '../common/betnext.exception';
 import { PlaceBetDto } from './dto/place-bet.dto';
 import { IWalletService, WALLET_SERVICE } from '../wallet/wallet.interface';
@@ -36,6 +37,7 @@ export class BetsService {
     @Inject(RESPONSIBLE_GAMING) private readonly rg: IResponsibleGaming,
     @Inject(EVENT_BUS) private readonly bus: IEventBus,
     private readonly notifier: BetNotifier,
+    @Optional() private readonly metrics?: BetNextMetrics,
   ) {}
 
   async placeBet(userId: number, dto: PlaceBetDto): Promise<IBet> {
@@ -114,6 +116,9 @@ export class BetsService {
     // T7.3 — notification non bloquante : on tente le push mais on n'échoue
     // jamais. Cf. {@link BetNotifier}.
     await this.notifier.notifyBetPlaced(userId, bet.id, Number(bet.amount));
+
+    // T11.2 — monitoring : un pic de paris se voit sur le dashboard Grafana.
+    this.metrics?.recordBetPlaced(Number(bet.amount));
 
     return bet.toPublic();
   }

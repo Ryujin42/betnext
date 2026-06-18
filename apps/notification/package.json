@@ -10,6 +10,7 @@
     "typecheck": "tsc -p tsconfig.app.json --noEmit"
   },
   "dependencies": {
+    "@betnext/observability": "workspace:*",
     "@betnext/shared-events": "workspace:*",
     "@betnext/shared-types": "workspace:*",
     "@nestjs/common": "^11.0.1",

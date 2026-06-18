@@ -1,6 +1,7 @@
-import { Inject, Logger, OnModuleInit } from '@nestjs/common';
+import { Inject, Logger, OnModuleInit, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
+import { BetNextMetrics } from '@betnext/observability';
 import {
   ConnectedSocket,
   MessageBody,
@@ -52,6 +53,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
     @Inject(EVENT_BUS) private readonly bus: IEventBus,
+    @Optional() private readonly metrics?: BetNextMetrics,
   ) {}
 
   /** Branche les ponts bus → WS une fois le gateway prêt. */
@@ -84,6 +86,8 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
       client.data.userId = payload.sub;
       client.data.role = payload.role;
       await client.join(`user:${payload.sub}`);
+      // T11.2 — jauge d'utilisateurs connectés en temps réel.
+      this.metrics?.incActiveUsers();
       this.logger.log(`WS connecté : user ${payload.sub} (${payload.role}).`);
     } catch (err) {
       this.logger.warn(`WS refusé (JWT invalide) : ${(err as Error).message}`);
@@ -93,6 +97,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
 
   handleDisconnect(client: Socket): void {
     if (client.data.userId) {
+      this.metrics?.decActiveUsers();
       this.logger.log(`WS déconnecté : user ${client.data.userId as number}.`);
     }
   }

@@ -26,7 +26,8 @@
       "@betnext/shared-types": ["libs/shared-types/src/index.ts"],
       "@betnext/shared-utils": ["libs/shared-utils/src/index.ts"],
       "@betnext/shared-events": ["libs/shared-events/src/index.ts"],
-      "@betnext/odds": ["libs/odds/src/index.ts"]
+      "@betnext/odds": ["libs/odds/src/index.ts"],
+      "@betnext/observability": ["libs/observability/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "tmp", "dist"]

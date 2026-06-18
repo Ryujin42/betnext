@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@betnext/database": "workspace:*",
+    "@betnext/observability": "workspace:*",
     "@betnext/shared-events": "workspace:*",
     "@betnext/shared-types": "workspace:*",
     "@betnext/shared-utils": "workspace:*",

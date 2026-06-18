@@ -145,3 +145,26 @@ export interface IBalance {
   amount: number;
   updatedAt: string;
 }
+
+// ── Audit ARJEL (append-only) ─────────────────────────────────────────────
+
+/**
+ * Trace d'audit réglementaire immuable (T11.1). Une ligne par action sensible
+ * (pari placé, mouvement de portefeuille, modification RG, suspension...).
+ * Jamais de UPDATE/DELETE : la table est protégée par un trigger PostgreSQL.
+ */
+export interface IAuditLog {
+  id: number;
+  /** Topic du bus à l'origine de la trace (ex. `bet.placed`). */
+  topic: string;
+  /** Utilisateur concerné par l'action (sujet), `null` si non applicable. */
+  userId: number | null;
+  /** Acteur ayant déclenché l'action si différent du sujet (ex. admin), sinon `null`. */
+  actorId: number | null;
+  /** Charge utile complète de l'événement, telle que reçue sur le bus. */
+  payload: Record<string, unknown>;
+  /** Date de l'action côté métier (champ `occurredAt` de l'événement). */
+  occurredAt: string;
+  /** Date d'inscription en base par l'audit-service. */
+  recordedAt: string;
+}

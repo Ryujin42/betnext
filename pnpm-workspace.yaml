@@ -6,3 +6,5 @@ allowBuilds:
   esbuild: true
   msgpackr-extract: false
   nx: true
+  # winston-loki utilise le push JSON de Loki (pas protobuf) → build inutile.
+  protobufjs: false

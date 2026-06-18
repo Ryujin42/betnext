@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { MetricsModule } from '@betnext/observability';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { databaseConfigFactory } from '@betnext/database';
 import { MessagingModule } from '@betnext/shared-events';
@@ -13,6 +14,7 @@ import { HealthController } from './health/health.controller';
  */
 @Module({
   imports: [
+    MetricsModule.forRoot({ service: 'odds-engine' }),
     ConfigModule.forRoot({ isGlobal: true, envFilePath: ['.env', '../../.env'] }),
     TypeOrmModule.forRootAsync({ useFactory: databaseConfigFactory }),
     MessagingModule.forRoot(),
