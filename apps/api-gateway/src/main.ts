@@ -5,10 +5,14 @@ import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fa
 import { IoAdapter } from '@nestjs/platform-socket.io';
 import helmet from '@fastify/helmet';
 import { AppModule } from './app.module';
+import { BetNextLoggerService } from '@betnext/observability';
 import { registerBullBoard } from './bullboard/bullboard';
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create<NestFastifyApplication>(AppModule, new FastifyAdapter());
+  const app = await NestFactory.create<NestFastifyApplication>(AppModule, new FastifyAdapter(), {
+    bufferLogs: true,
+  });
+  app.useLogger(new BetNextLoggerService('api-gateway'));
 
   // Helmet : headers HTTP de sécurité (XSS, clickjacking, sniffing).
   await app.register(helmet);

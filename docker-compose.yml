@@ -55,6 +55,18 @@ services:
     extra_hosts:
       - 'host.docker.internal:host-gateway'
 
+  loki:
+    image: grafana/loki:3.1.1
+    container_name: betnext-loki
+    restart: unless-stopped
+    profiles: ['monitoring']
+    command: ['-config.file=/etc/loki/loki-config.yml']
+    ports:
+      - '${LOKI_PORT:-3100}:3100'
+    volumes:
+      - ./infra/loki/loki-config.yml:/etc/loki/loki-config.yml:ro
+      - lokidata:/loki
+
   grafana:
     image: grafana/grafana:11.2.0
     container_name: betnext-grafana
@@ -62,6 +74,7 @@ services:
     profiles: ['monitoring']
     depends_on:
       - prometheus
+      - loki
     environment:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
@@ -78,3 +91,4 @@ volumes:
   redisdata:
   prometheusdata:
   grafanadata:
+  lokidata:
