@@ -1,3 +1,4 @@
+import { ConfigModule } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
 import { AdaptersModule } from './adapters.module';
 import { GameAdapterRegistry } from './game-adapter.registry';
@@ -6,7 +7,18 @@ describe('MockLolAdapter (via injection NestJS)', () => {
   let registry: GameAdapterRegistry;
 
   beforeAll(async () => {
-    const moduleRef = await Test.createTestingModule({ imports: [AdaptersModule] }).compile();
+    // Le module charge PandaScoreLolAdapter qui exige `PANDASCORE_TOKEN` à
+    // l'instanciation, même si `GAME_ADAPTER=mock` reste sélectionné.
+    const moduleRef = await Test.createTestingModule({
+      imports: [
+        ConfigModule.forRoot({
+          isGlobal: true,
+          ignoreEnvFile: true,
+          load: [() => ({ GAME_ADAPTER: 'mock', PANDASCORE_TOKEN: 'test-token' })],
+        }),
+        AdaptersModule,
+      ],
+    }).compile();
     registry = moduleRef.get(GameAdapterRegistry);
   });
 

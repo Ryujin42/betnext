@@ -1,6 +1,7 @@
 import type { TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { UserEntity } from './entities/user.entity';
 import { SessionEntity } from './entities/session.entity';
+import { RgProfileEntity } from './entities/rg-profile.entity';
 import { GameEntity } from './entities/game.entity';
 import { TournamentEntity } from './entities/tournament.entity';
 import { EsportEventEntity } from './entities/esport-event.entity';
@@ -20,6 +21,7 @@ import { AuditLogEntity } from './entities/audit-log.entity';
 export const ENTITIES = [
   UserEntity,
   SessionEntity,
+  RgProfileEntity,
   GameEntity,
   TournamentEntity,
   EsportEventEntity,

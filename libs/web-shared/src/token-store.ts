@@ -17,6 +17,12 @@ export interface TokenStore {
   getUser: () => StoredUser | null;
   set: (access: string, refresh: string, user: StoredUser) => void;
   setAccess: (access: string) => void;
+  /**
+   * Stocke le nouveau refresh token reçu après rotation. Indispensable pour
+   * éviter que le client réutilise l'ancien (déjà révoqué) au prochain
+   * refresh — ce qui ferait révoquer toute la `family_id` côté user-service.
+   */
+  setRefresh: (refresh: string) => void;
   clear: () => void;
 }
 
@@ -46,6 +52,7 @@ export function createTokenStore(prefix: string): TokenStore {
       localStorage.setItem(USER, JSON.stringify(user));
     },
     setAccess: (access) => localStorage.setItem(ACCESS, access),
+    setRefresh: (refresh) => localStorage.setItem(REFRESH, refresh),
     clear: () => {
       localStorage.removeItem(ACCESS);
       localStorage.removeItem(REFRESH);

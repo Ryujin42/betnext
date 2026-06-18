@@ -8,6 +8,7 @@ import {
   createEvent,
   getOutcomes,
   importLive,
+  importPersistOne,
   listEvents,
   publishEvent,
   setResult,
@@ -46,7 +47,7 @@ export function EventsPage() {
         <h1 className="text-2xl font-bold text-ink-50">Évènements</h1>
         <div className="flex gap-2">
           <Button variant="secondary" onClick={() => setImporting(true)}>
-            Importer (LoL mock)
+            Importer LoL
           </Button>
           <Button onClick={() => setCreating(true)}>Nouvel évènement</Button>
         </div>
@@ -202,32 +203,71 @@ function ImportModal({ onClose }: { onClose: () => void }) {
   });
 
   return (
-    <Modal open onClose={onClose} title="Import — adaptateur LoL (mock)" width="max-w-2xl">
+    <Modal open onClose={onClose} title="Import — adaptateur LoL" width="max-w-2xl">
+      <p className="mb-3 text-xs text-ink-300">
+        Clique sur un match pour l'ajouter en <strong>BROUILLON</strong>. Il apparaîtra dans la
+        liste des événements, prêt à être publié.
+      </p>
       {query.isLoading && <p className="text-sm text-ink-300">Récupération…</p>}
       {query.isError && (
-        <p className="text-sm text-red-300">Impossible d'interroger l'adaptateur.</p>
+        <p className="text-sm text-red-300">
+          Impossible d'interroger l'adaptateur (token manquant ou API en erreur).
+        </p>
       )}
       {query.data && query.data.length === 0 && (
         <p className="text-sm text-ink-300">Aucun évènement disponible.</p>
       )}
       <ul className="flex flex-col gap-2">
         {(query.data ?? []).map((ev) => (
-          <li
-            key={ev.externalId}
-            className="rounded-lg border border-surface-200 bg-surface-50 p-3 text-sm"
-          >
-            <div className="font-medium text-ink-50">{ev.name}</div>
-            <div className="text-xs text-ink-300">
-              {ev.tournament} · {ev.game.toUpperCase()} · {formatDate(ev.startDate)}
-            </div>
-            <div className="text-xs text-ink-300">Équipes : {ev.teams.join(' vs ')}</div>
-          </li>
+          <ImportRow key={ev.externalId} event={ev} />
         ))}
       </ul>
       <div className="mt-4 flex justify-end">
         <Button onClick={onClose}>Fermer</Button>
       </div>
     </Modal>
+  );
+}
+
+function ImportRow({ event }: { event: ImportedEvent }) {
+  const qc = useQueryClient();
+  const [state, setState] = useState<'idle' | 'created' | 'duplicate' | 'error'>('idle');
+  const mut = useMutation({
+    mutationFn: () => importPersistOne('lol', event.externalId),
+    onSuccess: (res) => {
+      setState(res.created ? 'created' : 'duplicate');
+      qc.invalidateQueries({ queryKey: ['admin', 'events'] });
+    },
+    onError: () => setState('error'),
+  });
+
+  return (
+    <li className="flex items-center justify-between gap-3 rounded-lg border border-surface-200 bg-surface-50 p-3 text-sm">
+      <div className="flex-1">
+        <div className="font-medium text-ink-50">{event.name}</div>
+        <div className="text-xs text-ink-300">
+          {event.tournament} · {event.game.toUpperCase()} · {formatDate(event.startDate)}
+        </div>
+        <div className="text-xs text-ink-300">Équipes : {event.teams.join(' vs ')}</div>
+      </div>
+      <div className="flex flex-col items-end gap-1">
+        <Button
+          size="sm"
+          variant={state === 'created' || state === 'duplicate' ? 'ghost' : 'secondary'}
+          onClick={() => mut.mutate()}
+          disabled={mut.isPending || state === 'created' || state === 'duplicate'}
+        >
+          {mut.isPending
+            ? 'Import…'
+            : state === 'created'
+              ? 'Ajouté'
+              : state === 'duplicate'
+                ? 'Déjà présent'
+                : 'Importer'}
+        </Button>
+        {state === 'error' && <span className="text-xs text-red-300">Erreur</span>}
+      </div>
+    </li>
   );
 }
 

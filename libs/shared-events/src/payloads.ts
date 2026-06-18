@@ -29,6 +29,12 @@ export interface EventResultSetEvent {
   occurredAt: string;
 }
 
+/** `event.cancelled` — un manager a annulé l'événement (déclenche le remboursement des paris PENDING). */
+export interface EventCancelledEvent {
+  eSportEventId: number;
+  occurredAt: string;
+}
+
 /** `bet.won` / `bet.lost` — un pari a été résolu. */
 export interface BetResolvedEvent {
   betId: number;

@@ -48,6 +48,9 @@ describe('api() — intercepteur fetch-and-retry (T8.1)', () => {
     expect(result).toEqual({ ok: true });
     expect(fetchSpy).toHaveBeenCalledTimes(3);
     expect(tokenStore.getAccess()).toBe('acc.new');
+    // Le nouveau refresh doit être stocké pour la prochaine rotation ; sinon
+    // le client réutilise l'ancien (déjà révoqué) → révocation famille → 401.
+    expect(tokenStore.getRefresh()).toBe('refr.new');
 
     // Le rejeu utilise le nouvel access token.
     const finalCall = fetchSpy.mock.calls[2][1] as RequestInit;

@@ -1,8 +1,14 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { BetNextErrorCode, EventStatus } from '@betnext/shared-types';
 import { EsportEventEntity, EventTeamEntity } from '@betnext/database';
+import {
+  BetNextTopic,
+  EVENT_BUS,
+  type EventCancelledEvent,
+  type IEventBus,
+} from '@betnext/shared-events';
 import { BetNextException } from '../common/betnext.exception';
 import { canDelete, canModify, canTransition } from './event-lifecycle';
 import type { CreateEventDto } from './dto/create-event.dto';
@@ -20,11 +26,17 @@ export class EventsService {
     private readonly events: Repository<EsportEventEntity>,
     @InjectRepository(EventTeamEntity)
     private readonly eventTeams: Repository<EventTeamEntity>,
+    @Inject(EVENT_BUS) private readonly bus: IEventBus,
   ) {}
 
   /** Liste les événements visibles des joueurs (PUBLIE). */
   listPublished(): Promise<EsportEventEntity[]> {
     return this.events.find({ where: { status: EventStatus.PUBLIE }, order: { startDate: 'ASC' } });
+  }
+
+  /** Liste tous les évènements (tous statuts) — utilisé par l'admin/manager. */
+  listAll(): Promise<EsportEventEntity[]> {
+    return this.events.find({ order: { startDate: 'ASC' } });
   }
 
   async getOrThrow(id: number): Promise<EsportEventEntity> {
@@ -79,14 +91,28 @@ export class EventsService {
     await this.events.remove(event);
   }
 
-  /** Transition de statut validée par la machine à états. */
+  /**
+   * Transition de statut validée par la machine à états. Une annulation
+   * (→ ANNULE) publie en plus `event.cancelled` sur le bus, ce qui déclenche
+   * côté betting-service l'annulation des paris PENDING et leur remboursement
+   * (cf. BETNEXT_CONTEXT §10 : « ANNULE → Paris remboursés »).
+   */
   async transition(id: number, target: EventStatus): Promise<EsportEventEntity> {
     const event = await this.getOrThrow(id);
     if (!canTransition(event.status, target)) {
       throw this.lifecycleError(`Transition ${event.status} → ${target} interdite.`);
     }
     event.status = target;
-    return this.events.save(event);
+    const saved = await this.events.save(event);
+
+    if (target === EventStatus.ANNULE) {
+      await this.bus.publish<EventCancelledEvent>(BetNextTopic.EventCancelled, {
+        eSportEventId: saved.id,
+        occurredAt: new Date().toISOString(),
+      });
+    }
+
+    return saved;
   }
 
   private lifecycleError(message: string): BetNextException {

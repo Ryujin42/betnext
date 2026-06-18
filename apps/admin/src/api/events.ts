@@ -29,7 +29,7 @@ export interface ImportedEvent {
 }
 
 export function listEvents(): Promise<EventDto[]> {
-  return api<EventDto[]>('/events');
+  return api<EventDto[]>('/events?all=true');
 }
 
 export function getEvent(id: number): Promise<EventDto> {
@@ -74,4 +74,26 @@ export function setResult(eventId: number, body: { winnerOutcomeId: number }): P
 
 export function importLive(type: string): Promise<ImportedEvent[]> {
   return api<ImportedEvent[]>(`/events/import/${type}`);
+}
+
+export interface IngestionSummary {
+  type: string;
+  created: number;
+  skipped: number;
+  createdIds: number[];
+}
+
+export function importPersist(type: string): Promise<IngestionSummary> {
+  return api<IngestionSummary>(`/events/import/${type}`, { method: 'POST' });
+}
+
+export interface ImportOneResult {
+  created: boolean;
+  id: number | null;
+}
+
+export function importPersistOne(type: string, externalId: string): Promise<ImportOneResult> {
+  return api<ImportOneResult>(`/events/import/${type}/${encodeURIComponent(externalId)}`, {
+    method: 'POST',
+  });
 }
