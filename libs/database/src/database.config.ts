@@ -11,6 +11,7 @@ import { BetEntity } from './entities/bet.entity';
 import { BetHistoryEntity } from './entities/bet-history.entity';
 import { TransactionEntity } from './entities/transaction.entity';
 import { BalanceEntity } from './entities/balance.entity';
+import { AuditLogEntity } from './entities/audit-log.entity';
 
 /**
  * Liste de toutes les entités du schéma `betnext`. Centralisée ici pour que
@@ -29,6 +30,7 @@ export const ENTITIES = [
   BetHistoryEntity,
   TransactionEntity,
   BalanceEntity,
+  AuditLogEntity,
 ];
 
 /**
