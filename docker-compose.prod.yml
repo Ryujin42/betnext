@@ -1,10 +1,26 @@
 # ─────────────────────────────────────────────────────────────────────────
-# ÉBAUCHE production — démontre le scaling horizontal (cf. Lot 12).
-# Les services applicatifs (stateless) sont répliqués derrière nginx ;
-# PostgreSQL et Redis restent des points centraux (Redis Sentinel/Cluster
-# en vrai prod). Les `build:` ci-dessous seront branchés quand les services
-# auront leur Dockerfile (lots ultérieurs).
+# Production — démontre le scaling horizontal (Lot 12 — T12.1).
+#
+# Les services applicatifs sont **stateless** (sessions/refresh tokens en BDD,
+# état temps réel partagé via Redis — cf. T12.2) → réplicables derrière nginx.
+# PostgreSQL et Redis restent les points centraux (Redis Sentinel/Cluster en
+# vraie prod). Tous les services se construisent depuis le **Dockerfile
+# générique** `infra/docker/service.Dockerfile`, paramétré par l'ARG `APP`.
+#
+#   docker compose -f docker-compose.prod.yml up -d --build
 # ─────────────────────────────────────────────────────────────────────────
+x-service-build: &service-build
+  context: .
+  dockerfile: infra/docker/service.Dockerfile
+
+x-app-env: &app-env
+  NODE_ENV: production
+  DATABASE_URL: ${DATABASE_URL:-postgresql://betnext_app:app_pwd@postgres:5432/betnext?schema=betnext}
+  REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+  EVENT_BUS_DRIVER: redis
+  JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+  LOKI_URL: ${LOKI_URL:-}
+
 services:
   postgres:
     extends:
@@ -18,12 +34,11 @@ services:
 
   api-gateway:
     build:
-      context: .
-      dockerfile: apps/api-gateway/Dockerfile
+      <<: *service-build
+      args:
+        APP: api-gateway
     environment:
-      DATABASE_URL: ${DATABASE_URL}
-      REDIS_URL: ${REDIS_URL}
-      JWT_SECRET: ${JWT_SECRET}
+      <<: *app-env
     depends_on:
       - postgres
       - redis
@@ -32,8 +47,11 @@ services:
 
   betting-service:
     build:
-      context: .
-      dockerfile: apps/betting-service/Dockerfile
+      <<: *service-build
+      args:
+        APP: betting-service
+    environment:
+      <<: *app-env
     depends_on:
       - postgres
       - redis
@@ -42,9 +60,13 @@ services:
 
   odds-engine:
     build:
-      context: .
-      dockerfile: apps/odds-engine/Dockerfile
+      <<: *service-build
+      args:
+        APP: odds-engine
+    environment:
+      <<: *app-env
     depends_on:
+      - postgres
       - redis
     deploy:
       replicas: 2 # workers de recalcul des cotes
@@ -52,7 +74,7 @@ services:
   nginx:
     image: nginx:1.27-alpine
     ports:
-      - '80:80'
+      - '${NGINX_PORT:-8080}:80'
     volumes:
       - ./infra/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:

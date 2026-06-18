@@ -1,0 +1,13 @@
+# Contexte de build Docker — on exclut tout ce qui est régénéré dans l'image.
+**/node_modules
+**/dist
+**/.nx
+**/.vite
+**/.expo
+**/coverage
+.git
+*.log
+# Docs et secrets locaux (le `.env` réel est injecté à l'exécution)
+.env
+BETNEXT_CONTEXT.md
+BETNEXT_TASKS.md
