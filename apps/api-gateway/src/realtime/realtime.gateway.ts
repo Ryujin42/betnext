@@ -56,16 +56,24 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
     @Optional() private readonly metrics?: BetNextMetrics,
   ) {}
 
-  /** Branche les ponts bus → WS une fois le gateway prêt. */
+  /**
+   * Branche les ponts bus → WS une fois le gateway prêt.
+   *
+   * T12.2 — émission **`.local`** volontaire : en multi-instance, chaque réplica
+   * reçoit l'évènement via Redis Pub/Sub et émet à ses propres clients. Un
+   * `server.to(...)` (cluster-wide via l'adaptateur Redis) provoquerait un
+   * double envoi (une fois par réplica). `.local` garantit l'exactement-une-fois
+   * et reste équivalent à `.to(...)` en mono-instance.
+   */
   onModuleInit(): void {
     this.bus.subscribe<OddsUpdatedEvent>(BetNextTopic.OddsUpdated, (event) => {
-      this.server.to(`event:${event.eSportEventId}`).emit('odds.updated', event);
+      this.server.local.to(`event:${event.eSportEventId}`).emit('odds.updated', event);
     });
     this.bus.subscribe<BetResolvedEvent>(BetNextTopic.BetWon, (event) => {
-      this.server.to(`user:${event.userId}`).emit('bet.won', event);
+      this.server.local.to(`user:${event.userId}`).emit('bet.won', event);
     });
     this.bus.subscribe<BetResolvedEvent>(BetNextTopic.BetLost, (event) => {
-      this.server.to(`user:${event.userId}`).emit('bet.lost', event);
+      this.server.local.to(`user:${event.userId}`).emit('bet.lost', event);
     });
   }
 

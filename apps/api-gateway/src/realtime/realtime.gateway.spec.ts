@@ -22,7 +22,9 @@ function makeServer() {
       emitted.push({ room, event, payload });
     },
   }));
-  return { server: { to }, emitted };
+  // T12.2 — le bridge bus → WS émet via `server.local.to(...)` (exactement-une-fois
+  // en multi-instance). On partage le même mock `to` pour les deux accès.
+  return { server: { to, local: { to } }, emitted };
 }
 
 describe('RealtimeGateway (T9.3)', () => {
