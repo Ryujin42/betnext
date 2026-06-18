@@ -49,13 +49,16 @@ cp .env.example .env
 # 4. Lancer l'infrastructure locale (PostgreSQL + Redis)
 docker compose up -d postgres redis
 
-# 5. Appliquer les migrations
+# 5. Lancer l'infrastructure de monitoring (Grafana + Prometheus + Loki)
+docker compose --profile monitoring up -d
+
+# 6. Appliquer les migrations
 pnpm db:migrate
 
-# 6. Charger les données de démonstration
+# 7. Charger les données de démonstration
 pnpm db:seed
 
-# 7. Démarrer tous les services en développement
+# 8. Démarrer tous les services en développement
 pnpm dev
 
 # Ou démarrer un client spécifique
