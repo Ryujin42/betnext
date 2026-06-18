@@ -1,0 +1,99 @@
+name: CI
+
+# Lot 12 — T12.3 : pipeline lint → build → test + build des images Docker.
+# Déclenché sur chaque push (dev/main) et chaque pull request → un test cassé
+# fait échouer le job et bloque le merge (si la branche est protégée).
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Lint · Build · Test
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: betnext
+          POSTGRES_USER: betnext
+          POSTGRES_PASSWORD: betnext
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U betnext"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://betnext:betnext@localhost:5432/betnext?schema=betnext
+      REDIS_URL: redis://localhost:6379
+      EVENT_BUS_DRIVER: redis
+      JWT_SECRET: ci-secret
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.3.0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Build
+        run: pnpm build
+
+      - name: Test (Jest unitaire + Supertest e2e)
+        run: pnpm test
+
+  docker:
+    name: Build image ${{ matrix.app }}
+    needs: quality
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app:
+          - api-gateway
+          - user-service
+          - event-service
+          - betting-service
+          - odds-engine
+          - wallet-service
+          - notification
+          - audit-service
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image (${{ matrix.app }})
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: infra/docker/service.Dockerfile
+          build-args: |
+            APP=${{ matrix.app }}
+          push: false
+          tags: betnext-${{ matrix.app }}:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

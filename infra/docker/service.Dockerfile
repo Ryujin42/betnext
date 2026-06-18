@@ -17,11 +17,16 @@ WORKDIR /app
 COPY . .
 
 # Installe toutes les deps du workspace (lockfile figé) puis construit le
-# service ciblé et ses dépendances libs (`<APP>...` = paquet + dépendances).
+# service ciblé et ses dépendances libs. On déduit le **nom de package** depuis
+# le dossier (`apps/<APP>`) car il peut en différer (ex. dossier `notification`
+# → paquet `notification-service`), puis on filtre par nom : `<pkg>...` ajoute
+# les dépendances libs `@betnext/*` (construites avant l'app, ordre topologique).
 RUN pnpm install --frozen-lockfile
 ARG APP
 RUN test -n "$APP" || (echo "build-arg APP requis" && false)
-RUN pnpm --filter "${APP}..." run build
+RUN PKG=$(node -p "require('./apps/${APP}/package.json').name") \
+  && echo "Build du paquet '$PKG' (apps/${APP}) + dépendances" \
+  && pnpm --filter "${PKG}..." run build
 
 # ── Image d'exécution ────────────────────────────────────────────────────
 FROM node:22-alpine AS runtime
