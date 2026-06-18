@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { MetricsModule } from '@betnext/observability';
 import { APP_FILTER } from '@nestjs/core';
 import { AdminController } from './admin/admin.controller';
 import { AuthModule } from './auth/auth.module';
@@ -15,6 +16,7 @@ import { WalletWebhookController } from './wallet/wallet-webhook.controller';
 
 @Module({
   imports: [
+    MetricsModule.forRoot({ service: 'api-gateway' }),
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: ['.env', '../../.env'],

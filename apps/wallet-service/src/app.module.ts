@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { MetricsModule } from '@betnext/observability';
 import { APP_FILTER } from '@nestjs/core';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { databaseConfigFactory } from '@betnext/database';
@@ -9,6 +10,7 @@ import { WalletModule } from './wallet/wallet.module';
 
 @Module({
   imports: [
+    MetricsModule.forRoot({ service: 'wallet-service' }),
     ConfigModule.forRoot({ isGlobal: true, envFilePath: ['.env', '../../.env'] }),
     TypeOrmModule.forRootAsync({ useFactory: databaseConfigFactory }),
     MessagingModule.forRoot(),

@@ -34,6 +34,47 @@ services:
       timeout: 3s
       retries: 10
 
+  # ── Monitoring technique (Lot 11 — T11.2), distinct de l'audit (CONTEXT §11) ──
+  # Profil `monitoring` : ne démarre qu'avec `--profile monitoring` pour ne pas
+  # alourdir le `docker compose up` de dev par défaut.
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    container_name: betnext-prometheus
+    restart: unless-stopped
+    profiles: ['monitoring']
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.retention.time=30d'
+    ports:
+      - '${PROMETHEUS_PORT:-9090}:9090'
+    volumes:
+      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheusdata:/prometheus
+    # Les services applicatifs tournent sur l'hôte (`pnpm dev`) : on les atteint
+    # via host.docker.internal (mappé sur la gateway de l'hôte sous Linux).
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    container_name: betnext-grafana
+    restart: unless-stopped
+    profiles: ['monitoring']
+    depends_on:
+      - prometheus
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: 'false'
+    ports:
+      - '${GRAFANA_PORT:-3009}:3000'
+    volumes:
+      - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./infra/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafanadata:/var/lib/grafana
+
 volumes:
   pgdata:
   redisdata:
+  prometheusdata:
+  grafanadata:

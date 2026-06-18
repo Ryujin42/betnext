@@ -2,6 +2,7 @@ import { Inject, Injectable, Logger, OnModuleInit, Optional } from '@nestjs/comm
 import { DataSource, In } from 'typeorm';
 import { BetStatus } from '@betnext/shared-types';
 import { BetEntity, OutcomeEntity } from '@betnext/database';
+import { BetNextMetrics } from '@betnext/observability';
 import { computeOdds, toCents } from '@betnext/shared-utils';
 import {
   BetNextTopic,
@@ -44,6 +45,8 @@ export class OddsRecalculationService implements OnModuleInit {
     // au passage. Tant qu'il n'est pas fourni (Lot 5/6, tests), le service
     // fonctionne exactement comme avant.
     @Optional() @Inject(ODDS_CACHE) private readonly cache: IOddsCache | null = null,
+    // T11.2 — métriques de latence de recalcul (optionnel : absent en tests/Lot 5).
+    @Optional() private readonly metrics: BetNextMetrics | null = null,
   ) {}
 
   onModuleInit(): void {
@@ -58,6 +61,7 @@ export class OddsRecalculationService implements OnModuleInit {
    * concurrent ignoré) ou s'il n'y a aucune issue.
    */
   async recalculate(eSportEventId: number): Promise<OddsUpdatedEvent | null> {
+    const startedAt = Date.now();
     const updates = await this.lock.withLock(`odds:event:${eSportEventId}`, LOCK_TTL_SECONDS, () =>
       this.recompute(eSportEventId),
     );
@@ -65,6 +69,8 @@ export class OddsRecalculationService implements OnModuleInit {
     if (!updates || updates.length === 0) {
       return null;
     }
+    // T11.2 — latence de recalcul (uniquement quand un recompute a eu lieu).
+    this.metrics?.observeOddsCalculation(Date.now() - startedAt);
 
     const payload: OddsUpdatedEvent = {
       eSportEventId,
